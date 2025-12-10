@@ -1,35 +1,7 @@
 {
-  "updated": "2025-12-10T23:01:44Z",
+  "updated": "2025-12-10T23:02:33Z",
   "files": [
-    "reward_viz_20251125_142334_gemma-3-270m-it_vt28gmg5.html",
-    "reward_viz_20251125_145711_gemma-3-270m-it_6gcz3rsh.html",
-    "reward_viz_20251125_150237_gemma-3-270m-it_vg7y6c82.html",
-    "reward_viz_20251125_151606_gemma-3-270m-it_qr6h9jaw.html",
-    "reward_viz_20251125_153715_gemma-3-270m-it_20uyzntj.html",
-    "reward_viz_20251125_154035_gemma-3-270m-it_hdtvhy2m.html",
-    "reward_viz_20251125_165111_Llama-3.2-1B-Instruct_91zn9uu6.html",
-    "reward_viz_20251125_165708_Llama-3.2-1B-Instruct_ugpi43hy.html",
-    "reward_viz_20251125_173804_Llama-3.2-1B-Instruct_dwthbmx1.html",
     "reward_viz_20251127_113045_Llama-3.2-1B-Instruct_yt19bgud.html",
-    "reward_viz_20251128_091059_Llama-3.2-1B-Instruct_iw81oxpo.html",
-    "reward_viz_20251128_184056_Llama-3.2-1B-Instruct_qvdka3dt.html",
-    "reward_viz_20251205_132035_Llama-3.2-1B-Instruct_d6k1l5zr.html",
-    "reward_viz_20251205_164820_unknown_model_8xd3g2e0.html",
-    "reward_viz_20251205_170429_unknown_model_u07u8qlf.html",
-    "reward_viz_20251205_171107_unknown_model_t65hxurn.html",
-    "reward_viz_20251205_172309_unknown_model_a496hc71.html",
-    "reward_viz_20251205_173109_unknown_model_zbcvu0rg.html",
-    "reward_viz_20251205_200556_unknown_model_z1ni2d0w.html",
-    "reward_viz_20251205_222037_Qwen3-4B-Instruct-2507_csnrv7yv.html",
-    "reward_viz_20251205_230552_Qwen3-4B-Instruct-2507_ktpk3n78.html",
-    "reward_viz_20251208_110248_Qwen3-4B-Instruct-2507_cg61vvsa.html",
-    "reward_viz_20251208_131133_Qwen3-4B-Instruct-2507_rutziolt.html",
-    "reward_viz_20251208_150633_Qwen3-4B-Instruct-2507_jf9xqsgl.html",
-    "reward_viz_20251208_151951_Qwen3-4B-Instruct-2507_bdkg6n0o.html",
-    "reward_viz_20251208_162002_Qwen3-4B-Instruct-2507_pa5zi441.html",
-    "reward_viz_20251208_164925_Qwen3-4B-Instruct-2507_935qoxui.html",
-    "reward_viz_20251208_170053_Qwen3-4B-Instruct-2507_4f3uffrs.html",
-    "reward_viz_20251208_171559_Qwen3-4B-Instruct-2507_mxuxhqqm.html",
-    "reward_viz_20251210_130353_Qwen3-4B-Instruct-2507_4skk6krx.html"
+    "reward_viz_20251208_171559_Qwen3-4B-Instruct-2507_mxuxhqqm.html"
   ]
 }
