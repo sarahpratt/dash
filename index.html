@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reward Visualization Dashboard</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #1a1a2e;
+            color: #eee;
+            min-height: 100vh;
+        }
+        .header {
+            background: #16213e;
+            padding: 20px 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            color: #fff;
+        }
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .control-group label {
+            font-size: 0.85rem;
+            color: #aaa;
+        }
+        select {
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid #333;
+            background: #0f0f23;
+            color: #fff;
+            font-size: 0.9rem;
+            cursor: pointer;
+            min-width: 200px;
+        }
+        select:hover {
+            border-color: #4a9eff;
+        }
+        select:focus {
+            outline: none;
+            border-color: #4a9eff;
+            box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.2);
+        }
+        .last-updated {
+            font-size: 0.8rem;
+            color: #666;
+        }
+        .viz-container {
+            width: 100%;
+            height: calc(100vh - 80px);
+            border: none;
+        }
+        .viz-container iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: calc(100vh - 80px);
+            color: #666;
+        }
+        .empty-state svg {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+        .loading {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.8);
+            padding: 20px 40px;
+            border-radius: 8px;
+            z-index: 100;
+        }
+        .refresh-btn {
+            padding: 8px 16px;
+            background: #4a9eff;
+            border: none;
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+        .refresh-btn:hover {
+            background: #3a8eef;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📊 Reward Visualization Dashboard</h1>
+        <div class="controls">
+            <div class="control-group">
+                <label for="model-filter">Model:</label>
+                <select id="model-filter">
+                    <option value="all">All Models</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="viz-select">Visualization:</label>
+                <select id="viz-select">
+                    <option value="">Select a visualization...</option>
+                </select>
+            </div>
+            <button class="refresh-btn" onclick="loadManifest()">↻ Refresh</button>
+        </div>
+    </div>
+    
+    <div class="loading" id="loading">Loading...</div>
+    
+    <div class="viz-container" id="viz-container">
+        <div class="empty-state" id="empty-state">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/>
+            </svg>
+            <p>Select a visualization from the dropdown above</p>
+        </div>
+    </div>
+
+    <script>
+        let manifest = { files: [], updated: null };
+        let allFiles = [];
+
+        async function loadManifest() {
+            try {
+                const response = await fetch('manifest.json?t=' + Date.now());
+                manifest = await response.json();
+                allFiles = manifest.files || [];
+                populateModelFilter();
+                populateDropdown();
+            } catch (e) {
+                console.error('Failed to load manifest:', e);
+                // Try to load files directly from visualizations folder
+                allFiles = [];
+                populateDropdown();
+            }
+        }
+
+        function parseFileName(filename) {
+            // reward_viz_20251210_130353_Qwen3-4B-Instruct-2507_4skk6krx.html
+            const match = filename.match(/reward_viz_(\d{8})_(\d{6})_(.+)_([a-z0-9]+)\.html/);
+            if (match) {
+                const [_, date, time, model, id] = match;
+                const year = date.slice(0, 4);
+                const month = date.slice(4, 6);
+                const day = date.slice(6, 8);
+                const hour = time.slice(0, 2);
+                const min = time.slice(2, 4);
+                const sec = time.slice(4, 6);
+                return {
+                    date: `${year}-${month}-${day}`,
+                    time: `${hour}:${min}:${sec}`,
+                    datetime: new Date(`${year}-${month}-${day}T${hour}:${min}:${sec}`),
+                    model: model,
+                    id: id,
+                    filename: filename
+                };
+            }
+            return { filename, model: 'unknown', date: '', time: '', datetime: new Date(0) };
+        }
+
+        function populateModelFilter() {
+            const modelFilter = document.getElementById('model-filter');
+            const models = [...new Set(allFiles.map(f => parseFileName(f).model))].sort();
+            
+            modelFilter.innerHTML = '<option value="all">All Models</option>';
+            models.forEach(model => {
+                if (model && model !== 'unknown') {
+                    const option = document.createElement('option');
+                    option.value = model;
+                    option.textContent = model;
+                    modelFilter.appendChild(option);
+                }
+            });
+        }
+
+        function populateDropdown() {
+            const select = document.getElementById('viz-select');
+            const modelFilter = document.getElementById('model-filter').value;
+            
+            let files = allFiles
+                .map(f => parseFileName(f))
+                .filter(f => modelFilter === 'all' || f.model === modelFilter)
+                .sort((a, b) => b.datetime - a.datetime);
+
+            select.innerHTML = '<option value="">Select a visualization...</option>';
+            
+            files.forEach(file => {
+                const option = document.createElement('option');
+                option.value = file.filename;
+                option.textContent = `${file.date} ${file.time} - ${file.model}`;
+                select.appendChild(option);
+            });
+
+            // Auto-select first if available
+            if (files.length > 0 && !select.value) {
+                select.value = files[0].filename;
+                loadVisualization(files[0].filename);
+            }
+        }
+
+        function loadVisualization(filename) {
+            const container = document.getElementById('viz-container');
+            const emptyState = document.getElementById('empty-state');
+            
+            if (!filename) {
+                container.innerHTML = '';
+                container.appendChild(emptyState);
+                emptyState.style.display = 'flex';
+                return;
+            }
+
+            container.innerHTML = `<iframe src="visualizations/${filename}" title="Visualization"></iframe>`;
+        }
+
+        document.getElementById('viz-select').addEventListener('change', (e) => {
+            loadVisualization(e.target.value);
+        });
+
+        document.getElementById('model-filter').addEventListener('change', () => {
+            populateDropdown();
+        });
+
+        // Initial load
+        loadManifest();
+    </script>
+</body>
+</html>
