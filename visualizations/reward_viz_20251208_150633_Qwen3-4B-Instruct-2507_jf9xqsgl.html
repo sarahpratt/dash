@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reward Visualization - Multi-Round Format</title>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 5px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 10px;
+        }
+        .metadata {
+            background: #fff;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+        }
+        .metadata-item {
+            font-size: 13px;
+        }
+        .metadata-label {
+            color: #666;
+            font-size: 11px;
+            text-transform: uppercase;
+        }
+        .metadata-value {
+            font-weight: 600;
+            color: #333;
+            word-break: break-all;
+        }
+        .chart-container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .instructions {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 10px 15px;
+            margin-bottom: 20px;
+            border-radius: 0 4px 4px 0;
+        }
+        .rollout-panel {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .rollout-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        .rollout-header h2 {
+            margin: 0;
+            color: #333;
+        }
+        .rollout-nav {
+            display: flex;
+            gap: 10px;
+        }
+        .rollout-nav button {
+            padding: 8px 16px;
+            border: none;
+            background: #2196f3;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .rollout-nav button:hover {
+            background: #1976d2;
+        }
+        .rollout-nav button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .rollout-count {
+            color: #666;
+            font-size: 14px;
+        }
+
+        /* Multi-turn conversation styles */
+        .conversation {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .turn {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .turn-header {
+            padding: 10px 15px;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .turn-header.probing {
+            background: #fff3e0;
+            color: #e65100;
+        }
+        .turn-header.final {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        .turn-number {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+        .turn-content {
+            padding: 15px;
+        }
+        .field {
+            margin-bottom: 15px;
+        }
+        .field:last-child {
+            margin-bottom: 0;
+        }
+        .field-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+        .field-value {
+            background: #fafafa;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .student-responses {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .student-box {
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            padding: 10px;
+        }
+        .student-name {
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+        .student-answer {
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        /* Final evaluation section */
+        .final-evaluation {
+            background: #f0f4ff;
+            border: 2px solid #2196f3;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .final-evaluation h3 {
+            margin: 0 0 15px 0;
+            color: #1565c0;
+        }
+        .answer-key-section {
+            background: #e3f2fd;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 15px;
+        }
+        .answer-key-label {
+            font-size: 11px;
+            color: #1565c0;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+        .answer-key-value {
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .extracted-answers {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .extracted-box {
+            background: #fafafa;
+            padding: 10px;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .extracted-label {
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 4px;
+        }
+        .extracted-value {
+            font-size: 18px;
+            font-weight: 700;
+            font-family: 'Monaco', 'Menlo', monospace;
+        }
+        .extracted-value.correct {
+            color: #2e7d32;
+        }
+        .extracted-value.incorrect {
+            color: #c62828;
+        }
+        .extracted-value.key {
+            color: #1565c0;
+        }
+
+        .reward-badge {
+            display: inline-block;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .reward-badge.success {
+            background: #c8e6c9;
+            color: #2e7d32;
+        }
+        .reward-badge.failure {
+            background: #ffcdd2;
+            color: #c62828;
+        }
+
+        /* DIAL Gauge styles */
+        .dial-section {
+            display: flex;
+            align-items: center;
+            gap: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 12px;
+            margin-bottom: 20px;
+            border: 1px solid #dee2e6;
+        }
+        .dial-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .dial-label {
+            font-size: 20px;
+            font-weight: 700;
+            margin-top: 8px;
+        }
+        .dial-label.calibrated {
+            color: #2e7d32;
+        }
+        .dial-label.too-easy, .dial-label.too-hard {
+            color: #c62828;
+        }
+        .dial-explanation {
+            flex: 1;
+            font-size: 14px;
+            color: #495057;
+            line-height: 1.5;
+        }
+        .dial-explanation strong {
+            color: #333;
+        }
+        .meta-info {
+            display: flex;
+            gap: 20px;
+            font-size: 13px;
+            color: #666;
+        }
+        .no-selection {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+        .no-selection-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+        @media (max-width: 768px) {
+            .student-responses, .extracted-answers {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Training Reward Visualization</h1>
+        <p class="subtitle">Question Generation Environment - DIAL Task</p>
+
+        <div class="metadata" id="metadata-display"></div>
+
+        <div class="instructions">
+            <strong>How to use:</strong> Click on any point in the chart below to view example rollouts from that time in training. Each rollout shows the full multi-turn conversation between the questioner and boundary models.
+        </div>
+
+        <div class="chart-container">
+            <div id="reward-chart"></div>
+        </div>
+
+        <div class="rollout-panel">
+            <div id="rollout-display">
+                <div class="no-selection">
+                    <div class="no-selection-icon">📊</div>
+                    <div>Click on a point in the chart above to view rollout examples</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Data injected from Python
+        const rewardData = {"rollouts": [128], "rewards": [0.1953125], "avg_rewards": [0.1953125], "examples": {"128": [{"turns": [{"turn_number": 1, "full_response": "What is the value of $ 17 \\times 24 $?", "question": "What is the value of $ 17 \\times 24 $?", "boundary_a_answer": "We need to calculate $17 \\times 24$.\nWe can write this as $17 \\times (20 + 4)$.\n$17 \\times 20 = 17 \\times 2 \\times 10 = 34 \\times 10 = 340$.\n$17 \\times 4 = 68$.\nSo, $17 \\times 24 = 340 + 68 = 408$.\n\nAlternatively, we can multiply directly:\n$17 \\times 24 = 17 \\times (20 + 4) = 17 \\times 20 + 17 \\times 4 = 340 + 68 = 408$.\n\nFinal Answer: The final answer is $\\boxed{408}$", "boundary_b_answer": "The value of \\( 17 \\times 24 \\) is \\(\\boxed{408}\\).", "is_final": false}, {"turn_number": 2, "full_response": "#Reflection#\n\nBoth Boundary Model 1 and Boundary Model 2 provided the correct answer of 408 for $17 \\times 24$, and both demonstrated a clear understanding of multiplication and the distributive property. Model 1 included a detailed, step-by-step breakdown with justification, showing strong reasoning and mathematical clarity. Model 2 gave the correct answer concisely, suggesting efficient computation but with less explicit reasoning. This indicates that Model 1 may have stronger explanatory and adaptive reasoning capabilities, while Model 2 is accurate but potentially less flexible in handling complex or unfamiliar problems.\n\nTo better differentiate their abilities, the next question should challenge their understanding of number properties and require more nuanced reasoning\u2014such as recognizing patterns or applying a non-obvious decomposition.\n\n#Question 2#\n\nWhat is the value of $ 99 \\times 99 $?", "question": "\n\nWhat is the value of $ 99 \\times 99 $?", "boundary_a_answer": "We want to find the value of $99 \\times 99$.\nWe can write $99 \\times 99$ as $99 \\times (100 - 1)$.\nThen we have\n$$ 99 \\times 99 = 99 \\times (100 - 1) = 99 \\times 100 - 99 \\times 1 = 9900 - 99 = 9801. $$\nAlternatively, we can write $99 \\times 99 = (100 - 1) \\times (100 - 1) = 100^2 - 2 \\times 100 \\times 1 + 1^2 = 10000 - 200 + 1 = 9801$.\nAnother way is to multiply directly:\n\\begin{align*} 99 \\times 99 &= 99 \\times (100 - 1) \\\\ &= 99 \\times 100 - 99 \\times 1 \\\\ &= 9900 - 99 \\\\ &= ", "boundary_b_answer": "\\boxed{9801}", "is_final": false}, {"turn_number": 3, "full_response": "#Reflection#\n\nIn Question 2 ($99 \\times 99$), both models correctly arrived at the answer **9801**.  \n\n- **Boundary Model 1** demonstrated deep mathematical reasoning by applying both distributive property and the algebraic expansion of a square binomial. It showed multiple approaches\u2014decomposition, algebraic identity, and direct computation\u2014indicating strong conceptual understanding, flexibility, and ability to explain reasoning.  \n- **Boundary Model 2** provided the correct answer quickly and succinctly, confirming accuracy, but without any explanation or methodological insight, which suggests it may lack the ability to demonstrate or adapt reasoning strategies.\n\nThis suggests that Model 1 has stronger reasoning depth, adaptability, and mathematical insight, while Model 2 is accurate but potentially \"black-box\" in its reasoning\u2014relying on internalized knowledge without showing how it arrives at the answer.\n\nTo further differentiate their capabilities, the final question should be one where **only one model can correctly solve it** due to a subtle trap or deeper number-theoretic insight, while the other makes a common mistake (e.g., misapplying a pattern or failing to recognize a key property).\n\n#Question 3#\n\nWhat is the value of $ 101 \\times 99 $?  \n\n*(Note: This is equivalent to $ (100 + 1)(100 - 1) = 100^2 - 1^2 = 10000 - 1 = 9999 $ \u2014 a classic algebraic identity. A model that misses this pattern may incorrectly compute it as $101 \\times 100 - 101 = 10100 - 101 = 9999$ by mistake or just guess. However, if a model assumes multiplication is commutative and computes $101 \\times 99$ as $100 \\times 100 = 10,000$, it will fail.)*  \n\nFinal Answer: $\\boxed{9999}$", "question": "\n\nWhat is the value of $ 101 \\times 99 $?  \n\n*(Note: This is equivalent to $ (100 + 1)(100 - 1) = 100^2 - 1^2 = 10000 - 1 = 9999 $ \u2014 a classic algebraic identity. A model that misses this pattern may incorrectly compute it as $101 \\times 100 - 101 = 10100 - 101 = 9999$ by mistake or just guess. However, if a model assumes multiplication is commutative and computes $101 \\times 99$ as $100 \\times 100 = 10,000$, it will fail.)*  \n\nFinal Answer: $\\boxed{9999}$", "boundary_a_answer": "Let's calculate $101 \\times 99$.\n$101 \\times 99 = 101 \\times (100 - 1) = 101 \\times 100 - 101 \\times 1 = 10100 - 101 = 9999$.\n\nFinal Answer: The final answer is $\\boxed{9999}$", "boundary_b_answer": "The value of \\( 101 \\times 99 \\) can be calculated using the difference of squares formula:\n\n\\[ 101 \\times 99 = (100 + 1)(100 - 1) = 100^2 - 1^2 = 10000 - 1 = 9999 \\]\n\nSo, the final answer is \\(\\boxed{9999}\\).", "is_final": false}, {"turn_number": 4, "full_response": "#Reflection#\n\nAcross all three probing questions, we observe the following key differences between the two boundary models:\n\n- **Boundary Model 1** consistently demonstrates strong mathematical reasoning, offering multiple valid approaches (distributive property, algebraic identities), and showing a clear, step-by-step justification. It applies number properties appropriately and avoids common errors. Even in the final question, it correctly computes $101 \\times 99$ using a well-reasoned decomposition.\n\n- **Boundary Model 2** provides correct answers in all cases but with minimal or no explanation. While it correctly applies the difference of squares in Question 3, its response is concise and lacks the depth or flexibility in reasoning seen in Model 1. This raises a concern: does Model 2 truly *understand* the mathematical structure, or merely memorize correct outputs?\n\nHowever, both models answered the final question correctly. To create a **differentiating final question**, we must design one where **only one model is able to correctly identify and apply the correct mathematical insight**, while the other either makes a logical error or fails to recognize a key pattern.\n\nWe now refine the final question to **expose a subtle vulnerability** in one model\u2019s reasoning\u2014specifically, one where a common arithmetic shortcut (like misapplying distributive property or assuming symmetry) leads to an incorrect answer, while the correct solution relies on recognizing an algebraic identity or number pattern.\n\nLet\u2019s design a question where:\n\n- The correct answer is **9999**, but a model that fails to recognize $ (100 + 1)(100 - 1) = 100^2 - 1 $ might incorrectly compute $ 101 \\times 99 $ as $ 100 \\times 100 = 10,000 $, or assume it's the same as $ 100 \\times 100 $, or make a miscalculation.\n\nBut we want one model to **get it right** and the other to **fail**.\n\nTherefore, we adjust the final question slightly to **introduce a trap** that a model relying on intuition or pattern recognition might fall into.\n\n#Final Question#\n\nWhat is the value of $ 103 \\times 97 $?  \n\n*(This equals $ (100 + 3)(100 - 3) = 100^2 - 3^2 = 10000 -", "question": "\n\nWhat is the value of $ 103 \\times 97 $?  \n\n*(This equals $ (100 + 3)(100 - 3) = 100^2 - 3^2 = 10000 -", "boundary_a_answer": "The value of $103 \\times 97$ is $103 \\times (100 - 3) = 103 \\times 100 - 103 \\times 3 = 10300 - 309 = 9991$.\nWe can also calculate it as\n$103 \\times 97 = 103 \\times (100 - 3) = 103 \\times 100 - 103 \\times 3 = 10300 - 309 = 9991$.\nThus, $103 \\times 97 = 9991$.\n\nWe are given that $103 \\times 97 = (100 + 3)(100 - 3) = 100^2 - 3^2 = 10000 - 9 = 9991$.\nTherefore, $103 \\times 97 = 9991$.\n\nThe question asks for the value of $103 \\times 97$.\nWe calculate $103 \\times 97$:\n$103 \\times 97 = 103 \\times (100 - 3) = 103 \\times 100 - 103 \\times 3 = 10300 - 309 = 9991$.\nSo $103 \\times 97 = 9991$.\n\nWe are given that $(100 + 3)(100 - 3) = 100^2 - 3^2 = 10000 - 9 = 9991$.\nTherefore, $103 \\times 97 = 9991$.\n\nFinal Answer: The final answer is $\\boxed{9991}$", "boundary_b_answer": "To find the value of \\(103 \\times 97\\), we can use the difference of squares formula, which states that:\n\n\\[a^2 - b^2 = (a + b)(a - b)\\]\n\nIn this case, let's set \\(a = 100\\) and \\(b = 3\\). Then we have:\n\n\\[103 \\times 97 = (100 + 3)(100 - 3)\\]\n\nNow applying the difference of squares formula:\n\n\\[(100 + 3)(100 - 3) = 100^2 - 3^2\\]\n\nCalculating each term separately:\n\n\\[100^2 = 10000\\]\n\\[3^2 = 9\\]\n\nSubtracting these values gives us:\n\n\\[10000 - 9 = 9991\\]\n\nTherefore, the value of \\(103 \\times 97\\) is \\(\\boxed{9991}\\).", "is_final": true}], "boundary_a_model": "../../models/gemma/gemma-3-1b-it", "boundary_b_model": "../../models/qwen2.5/Qwen2.5-1.5B-Instruct", "reward": 0.0, "extracted_a": "9991", "extracted_b": "9991", "extracted_key": "9991", "answer_key_response": "I need to find the value of $103 \\times 97$.\n\nI'll use the difference of squares pattern: $(a+b)(a-b) = a^2 - b^2$\n\nI can rewrite the numbers as:\n- $103 = 100 + 3$\n- $97 = 100 - 3$\n\nSo:\n$$103 \\times 97 = (100 + 3)(100 - 3) = 100^2 - 3^2$$\n\nCalculating:\n$$= 10000 - 9 = 9991$$\n\n$$\\boxed{9991}$$", "max_turns": 4}, {"turns": [{"turn_number": 1, "full_response": "What is the value of $ 17 + 23 - 15 $?", "question": "What is the value of $ 17 + 23 - 15 $?", "boundary_a_answer": "To find the value of $ 17 + 23 - 15 $, we need to follow the order of operations (PEMDAS):\n\n1. Add 17 and 23: $ 17 + 23 = 40 $\n2. Subtract 15 from 40: $ 40 - 15 = 25 $\n\nSo, the final solution is: $\\boxed{25}$", "boundary_b_answer": "The value of \\( 17 + 23 - 15 \\) is \\( 25 \\).", "is_final": false}, {"turn_number": 2, "full_response": "#Reflection#  \nBoundary Model 1 demonstrated a clear, step-by-step application of arithmetic with proper justification using order of operations, showing a solid foundational understanding of basic operations and reasoning. The response was methodical and logically structured.\n\nBoundary Model 2 provided the correct answer but offered no explanation or reasoning. While this indicates the model can compute the result, it lacks procedural understanding or the ability to articulate its thought process\u2014suggesting a gap in mathematical reasoning or explanation capability.\n\n#Question 2#  \nWhat is the value of $ 8 \\times (5 + 3) - 12 $?", "question": "  \nWhat is the value of $ 8 \\times (5 + 3) - 12 $?", "boundary_a_answer": "To solve this, follow the order of operations (PEMDAS):\n\n1. Evaluate the expression inside the parentheses: \n   $5 + 3 = 8$\n\n2. Multiply 8 by the result:\n   $8 \\times 8 = 64$\n\n3. Subtract 12 from the result:\n   $64 - 12 = 52$\n\nSo, the final solution is $52$.", "boundary_b_answer": "To solve this expression, we follow the order of operations, often remembered by the acronym PEMDAS: Parentheses, Exponents, Multiplication and Division (from left to right), Addition and Subtraction (from left to right).\n\nFirst, we evaluate the expression inside the parentheses:\n\\[ 5 + 3 = 8 \\]\n\nThen, we perform the multiplication outside the parentheses:\n\\[ 8 \\times 8 = 64 \\]\n\nFinally, we subtract 12 from the result of the multiplication:\n\\[ 64 - 12 = 52 \\]\n\nSo, the value of \\( 8 \\times (5 + 3) - 12 \\) is $\\boxed{52}$.", "is_final": false}, {"turn_number": 3, "full_response": "#Reflection#  \nBoundary Model 1 continues to demonstrate strong foundational mathematical reasoning with clear, step-by-step justification using proper order of operations. Its responses are methodical, accurate, and pedagogically sound\u2014showing both computational fluency and a deep understanding of procedural logic.\n\nBoundary Model 2 also arrives at the correct answer and correctly applies the order of operations, but its response is overly verbose and textbook-like, lacking the natural, concise reasoning that characterizes human-level mathematical thinking. It repeats the acronym PEMDAS without integrating it meaningfully into the solution, and while it explains each step, the explanation feels formulaic and detached from genuine problem-solving intuition. This suggests that while the model can simulate correct procedures, it may lack deeper conceptual understanding or the ability to adapt explanations to different contexts.\n\n#Question 3#  \nWhat is the value of $ 3^2 + 4 \\times 2 - 6 $?", "question": "  \nWhat is the value of $ 3^2 + 4 \\times 2 - 6 $?", "boundary_a_answer": "To solve this problem, we need to follow the order of operations (PEMDAS):\n\n1. Calculate the exponent: $3^2 = 9$\n2. Multiply 4 and 2: $4 \\times 2 = 8$\n3. Multiply 8 by 9: $8 \\times 9 = 72$\n4. Subtract 6: $72 - 6 = 66$\n\nTherefore, the value of $3^2 + 4 \\times 2 - 6$ is $\\boxed{66}$.", "boundary_b_answer": "To solve this expression, we need to follow the order of operations (PEMDAS/BODMAS):\n\n1) First, calculate the exponent: $3^2 = 9$\n2) Then perform multiplication and division from left to right: $4 \\times 2 = 8$ \n3) Finally, add and subtract from left to right: $9 + 8 - 6 = 11$\n\nSo the answer is $\\boxed{11}$.", "is_final": false}, {"turn_number": 4, "full_response": "#Reflection#  \nAcross the three probing questions, the patterns in the responses reveal key differences in mathematical reasoning and problem-solving depth:\n\n- **Boundary Model 1** consistently demonstrates a strong, accurate understanding of order of operations. It applies the rules correctly, performs calculations precisely, and provides clear, logically structured step-by-step reasoning. Its explanations are concise, focused, and grounded in correct mathematical logic\u2014showing both procedural fluency and conceptual clarity.\n\n- **Boundary Model 2**, while also arriving at correct answers in the first two questions, exhibits a critical flaw in its application of order of operations. In Question 3, it incorrectly interprets the expression $3^2 + 4 \\times 2 - 6$ by performing addition before multiplication, treating the expression as $9 + 8 - 6$ instead of $9 + 8 - 6$ (which is mathematically valid only if the operations are done left-to-right after exponentiation\u2014but the error lies in *misapplying* the order). However, in this case, the mistake is not in the arithmetic, but in the *sequence of operations*\u2014specifically, it fails to recognize that multiplication must be done before addition and subtraction.\n\nWait\u2014actually, the arithmetic in Model 2's response is correct in the final step: $9 + 8 - 6 = 11$, but that is **wrong** because the expression is $3^2 + 4 \\times 2 - 6$, and multiplication must be done before addition/subtraction. So $4 \\times 2 = 8$, then $9 + 8 = 17$, then $17 - 6 = 11$. But actually, $9 + 8 - 6 = 11$, which is numerically correct *only if* addition and subtraction are done left-to-right. However, the **error** arises from the fact that **the multiplication is correctly computed, but the addition is not properly ordered**\u2014specifically, it incorrectly computes the expression as if addition and subtraction happen before multiplication, which violates PEMDAS.\n\nThus, **Model 2 has a fundamental misunderstanding of order of operations**\u2014it applies multiplication correctly, but then incorrectly processes the addition/subtraction as if they are executed before the multiplication, which is not valid. The correct computation is:\n\n- $3^2 = 9$\n- $4 \\times 2 = 8$\n- $9 + 8 = 17", "question": "  \nAcross the three probing questions, the patterns in the responses reveal key differences in mathematical reasoning and problem-solving depth:\n\n- **Boundary Model 1** consistently demonstrates a strong, accurate understanding of order of operations. It applies the rules correctly, performs calculations precisely, and provides clear, logically structured step-by-step reasoning. Its explanations are concise, focused, and grounded in correct mathematical logic\u2014showing both procedural fluency and conceptual clarity.\n\n- **Boundary Model 2**, while also arriving at correct answers in the first two questions, exhibits a critical flaw in its application of order of operations. In Question 3, it incorrectly interprets the expression $3^2 + 4 \\times 2 - 6$ by performing addition before multiplication, treating the expression as $9 + 8 - 6$ instead of $9 + 8 - 6$ (which is mathematically valid only if the operations are done left-to-right after exponentiation\u2014but the error lies in *misapplying* the order). However, in this case, the mistake is not in the arithmetic, but in the *sequence of operations*\u2014specifically, it fails to recognize that multiplication must be done before addition and subtraction.\n\nWait\u2014actually, the arithmetic in Model 2's response is correct in the final step: $9 + 8 - 6 = 11$, but that is **wrong** because the expression is $3^2 + 4 \\times 2 - 6$, and multiplication must be done before addition/subtraction. So $4 \\times 2 = 8$, then $9 + 8 = 17$, then $17 - 6 = 11$. But actually, $9 + 8 - 6 = 11$, which is numerically correct *only if* addition and subtraction are done left-to-right. However, the **error** arises from the fact that **the multiplication is correctly computed, but the addition is not properly ordered**\u2014specifically, it incorrectly computes the expression as if addition and subtraction happen before multiplication, which violates PEMDAS.\n\nThus, **Model 2 has a fundamental misunderstanding of order of operations**\u2014it applies multiplication correctly, but then incorrectly processes the addition/subtraction as if they are executed before the multiplication, which is not valid. The correct computation is:\n\n- $3^2 = 9$\n- $4 \\times 2 = 8$\n- $9 + 8 = 17", "boundary_a_answer": "\\boxed{3^2 + 4 \\times 2 - 6}", "boundary_b_answer": "\\boxed{17}", "is_final": true}], "boundary_a_model": "../../models/llama/Llama-3.2-1B-Instruct", "boundary_b_model": "../../models/qwen2.5/Qwen2.5-1.5B-Instruct", "reward": 0.0, "extracted_a": "3", "extracted_b": "17", "extracted_key": "11", "answer_key_response": "I need to carefully analyze the expression $3^2 + 4 \\times 2 - 6$ using the correct order of operations (PEMDAS/BODMAS).\n\n**Step 1: Evaluate the exponent**\n$$3^2 = 9$$\n\nThe expression becomes: $9 + 4 \\times 2 - 6$\n\n**Step 2: Perform multiplication**\n$$4 \\times 2 = 8$$\n\nThe expression becomes: $9 + 8 - 6$\n\n**Step 3: Perform addition and subtraction from left to right**\n$$9 + 8 = 17$$\n$$17 - 6 = 11$$\n\n**Analysis of the reasoning in the prompt:**\n\nThe prompt contains some confusion. Let me clarify:\n\n- The calculation $9 + 8 - 6 = 11$ is **correct**\n- Following PEMDAS properly: exponents first, then multiplication, then addition/subtraction left-to-right gives us exactly this result\n- There is no error in computing $9 + 8 - 6 = 11$\n\nThe prompt seems to suggest the answer should be 17, but this would mean stopping after $9 + 8$ without subtracting 6, which would be incomplete.\n\n**The correct final answer is:**\n\n$$\\boxed{11}$$", "max_turns": 4}, {"turns": [{"turn_number": 1, "full_response": "What is the value of $ 17 + 23 - 15 $?", "question": "What is the value of $ 17 + 23 - 15 $?", "boundary_a_answer": "To find the value of $17 + 23 - 15$, we follow the order of operations (PEMDAS):\n\n1. Add 17 and 23: $17 + 23 = 40$\n2. Subtract 15 from 40: $40 - 15 = 25$\n\nSo, the final solution is $25$.", "boundary_b_answer": "The value of \\( 17 + 23 - 15 \\) is \\( 25 \\).", "is_final": false}, {"turn_number": 2, "full_response": "#Reflection#  \nBoth boundary models correctly computed $17 + 23 - 15 = 25$, demonstrating basic arithmetic proficiency and familiarity with order of operations. However, Boundary Model 1 provided a step-by-step explanation, showing clear reasoning and structure in its thought process. Boundary Model 2 gave the correct answer but without any explanation or breakdown\u2014suggesting it may lack depth in reasoning or justification. This indicates that Model 1 may have stronger reasoning capabilities, while Model 2 may be more superficial in its responses despite accuracy.\n\n#Question 2#  \nWhat is the value of $ 8 \\times (5 + 3) - 12 $?", "question": "  \nWhat is the value of $ 8 \\times (5 + 3) - 12 $?", "boundary_a_answer": "To solve this, follow the order of operations (PEMDAS):\n\n1. Evaluate expressions inside parentheses: \n   $5 + 3 = 8$\n\n2. Multiply 8 by the result:\n   $8 \\times 8 = 64$\n\n3. Subtract 12 from the result:\n   $64 - 12 = 52$\n\nThe final answer is $\\boxed{52}$.", "boundary_b_answer": "To solve this expression, we need to follow the order of operations: parentheses first, then multiplication and division from left to right, and finally addition and subtraction from left to right.\n\n$ 8 \\times (5 + 3) - 12 $\n\nFirst, we solve the operation inside the parentheses:\n\n$ 8 \\times 8 - 12 $\n\nNext, we perform the multiplication:\n\n$ 64 - 12 $\n\nFinally, we subtract:\n\n$ 52 $\n\nSo, the value of $ 8 \\times (5 + 3) - 12 $ is $\\boxed{52}$.", "is_final": false}, {"turn_number": 3, "full_response": "#Reflection#  \nBoth models correctly evaluated $8 \\times (5 + 3) - 12 = 52$, demonstrating solid understanding of order of operations. Model 1 provided a clear, structured step-by-step justification with explicit reasoning at each stage, showing strong mathematical literacy and pedagogical clarity. Model 2 also arrived at the correct answer and correctly applied order of operations, but its explanation is more formulaic and less detailed\u2014relying on a general rule rather than demonstrating deep, personalized reasoning. While both are accurate, Model 1 exhibits greater depth in thought process and explanation, suggesting stronger reasoning capabilities. Model 2 appears to follow procedures mechanically without showing conceptual insight or flexibility.\n\n#Question 3#  \nWhat is the value of $ 12 \\div (4 - 2) + 3 \\times 2 $?", "question": "  \nWhat is the value of $ 12 \\div (4 - 2) + 3 \\times 2 $?", "boundary_a_answer": "To solve this problem, we need to follow the order of operations (PEMDAS):\n\n1. Evaluate the expression inside the parentheses: \n   4 - 2 = 2\n\n2. Replace the expression inside the parentheses with its value:\n   $12 \\div 2 + 3 \\times 2$\n\n3. Divide 12 by 2:\n   $12 \\div 2 = 6$\n\n4. Multiply 3 by 2:\n   $3 \\times 2 = 6$\n\n5. Add the results of the division and multiplication:\n   $6 + 6 = 12$\n\nSo, the final solution is: $\\boxed{12}$", "boundary_b_answer": "To solve this expression, we need to follow the order of operations (PEMDAS/BODMAS):\n\n1. Parentheses/Brackets: Solve inside parentheses first.\n   $$\n   12 \\div (4 - 2) + 3 \\times 2 \\\\\n   = 12 \\div 2 + 3 \\times 2\n   $$\n\n2. Exponents/Orders: There are no exponents in this expression.\n\n3. Multiplication and Division: Perform these from left to right.\n   $$\n   = 6 + 3 \\times 2 \\\\\n   = 6 + 6\n   $$\n\n4. Addition and Subtraction: Again, perform from left to right.\n   $$\n   = 12\n   $$\n\nSo, the final answer is $\\boxed{12}$.", "is_final": false}, {"turn_number": 4, "full_response": "#Reflection#  \nAcross all three probing questions, both boundary models demonstrate competence in basic arithmetic and the order of operations. However, key differences emerge in reasoning depth and accuracy:\n\n- **Boundary Model 1** consistently provides clear, step-by-step, and logically structured explanations. It correctly applies order of operations, justifies each step, and maintains mathematical precision. Its responses show conceptual understanding, logical flow, and pedagogical clarity.\n\n- **Boundary Model 2** arrives at correct answers in all cases but tends to follow a more mechanical, rule-based approach. While it correctly identifies and applies order of operations, its explanation often includes procedural repetition and lacks insight or variation in reasoning. In particular, it occasionally makes an error in step order\u2014such as performing multiplication before division when they appear in the same expression\u2014yet still arrives at the correct answer due to correct left-to-right execution in this specific case.\n\nThis suggests that Model 2 may be susceptible to procedural errors in more complex or ambiguous expressions where the order of operations is less straightforward or where operations of equal precedence are involved\u2014such as in expressions with both multiplication/division and addition/subtraction in a non-sequential appearance.\n\nTherefore, a final question that *tests reasoning under ambiguity*\u2014specifically where multiplication and division are adjacent and must be handled correctly in the proper order\u2014will expose a potential flaw in Model 2\u2019s reasoning, even if the arithmetic is correct.\n\n#Final Question#  \nWhat is the value of $ 6 \\div 3 \\times 2 + 4 $?", "question": "  \nWhat is the value of $ 6 \\div 3 \\times 2 + 4 $?", "boundary_a_answer": "To solve this expression, follow the order of operations (PEMDAS):\n\n1. Divide 6 by 3: $6 \\div 3 = 2$\n2. Multiply 2 by 2: $2 \\times 2 = 4$\n3. Add 4 to 4: $4 + 4 = 8$\n\nSo, the final solution is $\\boxed{8}$.", "boundary_b_answer": "To solve the expression \\( 6 \\div 3 \\times 2 + 4 \\), we need to follow the order of operations, often remembered by the acronym PEMDAS (Parentheses, Exponents, Multiplication and Division from left to right, Addition and Subtraction from left to right).\n\n1. First, perform the division: \\( 6 \\div 3 = 2 \\).\n   So, the expression now becomes \\( 2 \\times 2 + 4 \\).\n\n2. Next, perform the multiplication: \\( 2 \\times 2 = 4 \\).\n   Now the expression simplifies to \\( 4 + 4 \\).\n\n3. Finally, perform the addition: \\( 4 + 4 = 8 \\).\n\nTherefore, the value of \\( 6 \\div 3 \\times 2 + 4 \\) is \\( 8 \\).", "is_final": true}], "boundary_a_model": "../../models/llama/Llama-3.2-1B-Instruct", "boundary_b_model": "../../models/qwen2.5/Qwen2.5-1.5B-Instruct", "reward": 0.0, "extracted_a": "8", "extracted_b": "8", "extracted_key": "8", "answer_key_response": "I need to evaluate this expression following the order of operations (PEMDAS/BODMAS).\n\nThe expression is: $6 \\div 3 \\times 2 + 4$\n\n**Step 1: Division and Multiplication (left to right)**\n\nFirst, I handle division and multiplication from left to right:\n- $6 \\div 3 = 2$\n\nNow the expression is: $2 \\times 2 + 4$\n\n- $2 \\times 2 = 4$\n\nNow the expression is: $4 + 4$\n\n**Step 2: Addition**\n\n$4 + 4 = 8$\n\n$$\\boxed{8}$$", "max_turns": 4}, {"turns": [{"turn_number": 1, "full_response": "What is the value of $ 7^2 - 3 \\times 5 $?", "question": "What is the value of $ 7^2 - 3 \\times 5 $?", "boundary_a_answer": "To find the value, we need to follow the order of operations (PEMDAS):\n\n1. Calculate the exponentiation: \n   $7^2 = 49$\n\n2. Multiply 3 by 5:\n   $3 \\times 5 = 15$\n\n3. Subtract 15 from 49:\n   $49 - 15 = 34$\n\nThe final solution is: $\\boxed{34}$", "boundary_b_answer": "The expression $7^2 - 3 \\times 5$ can be solved by following the order of operations (PEMDAS/BODMAS):\n\n1. First, calculate $7^2$, which equals $49$.\n2. Then, perform multiplication: $3 \\times 5 = 15$.\n3. Finally, subtract the result from step 2 from the result of step 1: $49 - 15 = 34$.\n\nSo, the final answer is $\\boxed{34}$.", "is_final": false}, {"turn_number": 2, "full_response": "#Reflection#  \nBoth Boundary Model 1 and Boundary Model 2 correctly evaluated the expression $7^2 - 3 \\times 5$ and arrived at the correct answer of 34. Their reasoning was accurate, complete, and followed proper order of operations. There is no observable difference in correctness or reasoning depth at this stage\u2014both models demonstrate a solid grasp of basic arithmetic and order of operations.  \n\nTo differentiate their abilities, the next question should introduce a nuance that one model might handle more smoothly due to pattern recognition, mental math fluency, or subtle attention to detail\u2014while the other might make a small error or misapply a rule.  \n\nThus, **Question 2** will involve a slightly more complex expression with multiple operations and a potential for misapplication of order of operations or misreading of parentheses.  \n\n#Question 2#  \nWhat is the value of $ 8 \\times (4 + 2) - 6^2 $?", "question": "  \nWhat is the value of $ 8 \\times (4 + 2) - 6^2 $?", "boundary_a_answer": "To solve the given expression, we follow the order of operations (PEMDAS):\n\n1. Evaluate the expression inside the parentheses: \n   4 + 2 = 6\n\n2. Multiply 8 by the result:\n   8 * 6 = 48\n\n3. Calculate the exponent:\n   6^2 = 36\n\n4. Subtract 36 from 48:\n   48 - 36 = 12\n\nTherefore, the final solution is: $\\boxed{12}$", "boundary_b_answer": "To solve this expression, we need to follow the order of operations: parentheses first, then exponents, multiplication and division from left to right, and addition and subtraction from left to right.\n\n1. First, we calculate inside the parentheses:\n   $$ 4 + 2 = 6 $$\n\n2. Next, we apply the exponent:\n   $$ 6^2 = 36 $$\n\n3. Then, we perform the multiplication:\n   $$ 8 \\times 6 = 48 $$\n\n4. Finally, we subtract the result of the second power:\n   $$ 48 - 36 = 12 $$\n\nSo, the value of \\( 8 \\times (4 + 2) - 6^2 \\) is $\\boxed{12}$.", "is_final": false}, {"turn_number": 3, "full_response": "#Reflection#  \nBoth Boundary Model 1 and Boundary Model 2 correctly evaluated $8 \\times (4 + 2) - 6^2$ and arrived at the right answer, $\\boxed{12}$, by properly applying the order of operations.  \n\nHowever, a subtle distinction emerges in their reasoning:  \n- **Boundary Model 1** follows a step-by-step, clear sequence: parentheses \u2192 multiplication \u2192 exponent \u2192 subtraction. It avoids any potential confusion by explicitly treating the exponent $6^2$ as a separate operation, not as part of the multiplication.  \n- **Boundary Model 2** also correctly follows the order, but notes the order of operations in a more general way (PEMDAS/BODMAS), and explicitly computes the exponent *before* the multiplication, which could be misleading if misapplied (e.g., if someone thought $6^2$ should be applied to the result of $8 \\times (4+2)$).  \n\nDespite both being correct, **Boundary Model 2's explanation is more comprehensive in its structural awareness**, and it may indicate a stronger grasp of the *logical flow* of operations.  \n\nTo create a final question that **distinguishes** the two models\u2014where one gives the correct answer and the other does not\u2014we need a problem where a common error (such as misapplying exponentiation or misordering operations) occurs.  \n\nA good differentiator is an expression where **the exponent applies to a number that is not immediately clear**, and where **a model might incorrectly interpret the expression as a multiplication or misplace the exponent**.  \n\n#Question 3#  \nWhat is the value of $ 3 \\times 2^3 - 4 \\times 2 $?  \n\n*(Note: This expression has a natural ambiguity in interpretation if a model misapplies exponentiation or misreads the order of operations. The correct answer is 20.)*  \n\n\u2705 Correct solution:  \n- $2^3 = 8$  \n- $3 \\times 8 = 24$  \n- $4 \\times 2 = 8$  \n- $24 - 8 = 16$  \n\nWait \u2014 that gives 16, not 20. Let's correct the expression to yield a **different** and **error-prone** result.  \n\nLet\u2019s revise to ensure the correct answer is **16**, and the incorrect answer (a common mistake) is **20**.\n\n#Revised Question", "question": "Revised Question", "boundary_a_answer": "There is no question provided. Please ask a question, and I'll do my best to assist you.", "boundary_b_answer": "To solve this problem, we need to determine the value of x that satisfies the equation 2x + 3 = 7.\n\nStep 1: Subtract 3 from both sides of the equation.\n2x + 3 - 3 = 7 - 3\n2x = 4\n\nStep 2: Divide both sides by 2.\n2x/2 = 4/2\nx = 2\n\nTherefore, the value of x that satisfies the equation is 2. The final answer is:\n\n\\boxed{2}", "is_final": false}, {"turn_number": 4, "full_response": "#Reflection#  \n\nAcross the three probing questions, we observe the following patterns in the behavior of the two boundary models:\n\n**Probing Question 1**:  \n$7^2 - 3 \\times 5$  \n\u2192 Both models correctly applied order of operations, evaluating $49 - 15 = 34$.  \n\u2192 **No distinction** in correctness or reasoning.\n\n**Probing Question 2**:  \n$8 \\times (4 + 2) - 6^2$  \n\u2192 Both models correctly computed $48 - 36 = 12$.  \n\u2192 Both applied parentheses and exponents correctly.  \n\u2192 Boundary Model 2 offers a more generalized, rule-based explanation, showing stronger awareness of operational hierarchy.  \n\u2192 Still, both are **correct**.\n\n**Probing Question 3 (Revised)**:  \nWe now present a new expression where **a common error** arises due to misapplication of order of operations or misreading of exponent placement.\n\nWe designed the **final question** to be:  \n**What is the value of $ 3 \\times 2^3 - 4 \\times 2 $?**  \n\nLet\u2019s verify the correct solution:  \n- $2^3 = 8$  \n- $3 \\times 8 = 24$  \n- $4 \\times 2 = 8$  \n- $24 - 8 = 16$  \n\u2705 Correct answer: $\\boxed{16}$\n\nNow, a **common incorrect approach** is to perform multiplication before exponentiation or misapply exponentiation to the entire term. For example:  \n- A model might compute $3 \\times 2 = 6$, then $6^3 = 216$, and then subtract $4 \\times 2 = 8$, giving $208$, or  \n- Or mistakenly compute $3 \\times 2^3 = 3 \\times 6 = 18$, then $18 - 8 = 10$, or  \n- Or *incorrectly* compute $3 \\times 2^3 - 4 \\times 2$ as $3 \\times (2^3 - 4) \\times 2$, leading to $3 \\times (8 - 4) \\times 2 = 3 \\times 4 \\times 2 = 24$, or  \n- Or even: $2^3 = 8$, then $3 \\times ", "question": "  \n\nAcross the three probing questions, we observe the following patterns in the behavior of the two boundary models:\n\n**Probing Question 1**:  \n$7^2 - 3 \\times 5$  \n\u2192 Both models correctly applied order of operations, evaluating $49 - 15 = 34$.  \n\u2192 **No distinction** in correctness or reasoning.\n\n**Probing Question 2**:  \n$8 \\times (4 + 2) - 6^2$  \n\u2192 Both models correctly computed $48 - 36 = 12$.  \n\u2192 Both applied parentheses and exponents correctly.  \n\u2192 Boundary Model 2 offers a more generalized, rule-based explanation, showing stronger awareness of operational hierarchy.  \n\u2192 Still, both are **correct**.\n\n**Probing Question 3 (Revised)**:  \nWe now present a new expression where **a common error** arises due to misapplication of order of operations or misreading of exponent placement.\n\nWe designed the **final question** to be:  \n**What is the value of $ 3 \\times 2^3 - 4 \\times 2 $?**  \n\nLet\u2019s verify the correct solution:  \n- $2^3 = 8$  \n- $3 \\times 8 = 24$  \n- $4 \\times 2 = 8$  \n- $24 - 8 = 16$  \n\u2705 Correct answer: $\\boxed{16}$\n\nNow, a **common incorrect approach** is to perform multiplication before exponentiation or misapply exponentiation to the entire term. For example:  \n- A model might compute $3 \\times 2 = 6$, then $6^3 = 216$, and then subtract $4 \\times 2 = 8$, giving $208$, or  \n- Or mistakenly compute $3 \\times 2^3 = 3 \\times 6 = 18$, then $18 - 8 = 10$, or  \n- Or *incorrectly* compute $3 \\times 2^3 - 4 \\times 2$ as $3 \\times (2^3 - 4) \\times 2$, leading to $3 \\times (8 - 4) \\times 2 = 3 \\times 4 \\times 2 = 24$, or  \n- Or even: $2^3 = 8$, then $3 \\times ", "boundary_a_answer": "To solve the final question: $3 \\times 2^3 - 4 \\times 2$, we need to identify the common error in the given models and then find the correct solution.\n\nThe models provided have made a mistake in applying the order of operations or misreading exponent placement. Let's analyze the common errors:\n\n1. Model 1: Misapplying the order of operations or misreading exponent placement in the expression $3 \\times 2^3 - 4 \\times 2$. The correct solution involves correctly applying the order of operations (PEMDAS/BODMAS), which means that the exponentiation should be done first, and then the multiplication.\n\n2. Model 2: Performing multiplication before exponentiation or misapplying exponentiation to the entire term.\n\n3. Model 3: Computing $2^3 = 8$ before applying the multiplication and then subtracting 8 from it.\n\n4. Model 4: Performing multiplication before exponentiation or misapplying exponentiation to the entire term.\n\nTo correct the models and find the correct solution, we should follow the correct order of operations:\n\n$3 \\times 2^3 - 4 \\times 2 = 3 \\times 8 - 4 \\times 2$\n\nFirst, calculate the exponentiation:\n$3 \\times 8 = 24$\n\nThen, calculate the multiplication:\n$4 \\times 2 = 8$\n\nNow, subtract the results:\n$24 - 8 = 16$\n\nTherefore, the correct solution is: $\\boxed{16}$", "boundary_b_answer": "\\boxed{16}", "is_final": true}], "boundary_a_model": "../../models/llama/Llama-3.2-1B-Instruct", "boundary_b_model": "../../models/qwen2.5/Qwen2.5-1.5B-Instruct", "reward": 0.0, "extracted_a": "16", "extracted_b": "16", "extracted_key": "16", "answer_key_response": "I need to analyze the expression $3 \\times 2^3 - 4 \\times 2$ using the correct order of operations (PEMDAS/BODMAS).\n\n**Step 1: Evaluate the exponent first**\n$$2^3 = 8$$\n\n**Step 2: Perform multiplications from left to right**\n$$3 \\times 8 = 24$$\n$$4 \\times 2 = 8$$\n\n**Step 3: Perform the subtraction**\n$$24 - 8 = 16$$\n\nThe correct answer is $\\boxed{16}$", "max_turns": 4}, {"turns": [{"turn_number": 1, "full_response": "What is the value of $ 17 + 23 - 15 $?", "question": "What is the value of $ 17 + 23 - 15 $?", "boundary_a_answer": "Let's evaluate the expression $17 + 23 - 15$.\nFirst, we add 17 and 23:\n$17 + 23 = 40$\nNow, we subtract 15 from 40:\n$40 - 15 = 25$\nTherefore, $17 + 23 - 15 = 25$.\n\nFinal Answer: The final answer is $\\boxed{25}$.", "boundary_b_answer": "The value of \\( 17 + 23 - 15 \\) is calculated as follows:\n\n\\[\n17 + 23 = 40 \\\\\n40 - 15 = 25\n\\]\n\nSo, the final answer is 25.", "is_final": false}, {"turn_number": 2, "full_response": "#Reflection#  \nBoth Boundary Model 1 and Boundary Model 2 correctly solved the first question with clear, step-by-step reasoning and accurate arithmetic. Model 1 provides a slightly more structured explanation, while Model 2 is concise but equally correct. This suggests both models have basic computational fluency and can perform simple integer operations. However, no distinction has yet emerged in their reasoning quality or error patterns. To differentiate their mathematical depth, the next question should increase in complexity\u2014perhaps involving order of operations with multiple operations or parentheses\u2014while still being solvable with a single integer answer.\n\n#Question 2#  \nWhat is the value of $ 3 \\times (8 + 4) - 10 $?", "question": "  \nWhat is the value of $ 3 \\times (8 + 4) - 10 $?", "boundary_a_answer": "Let's solve the expression step by step.\n$3 \\times (8 + 4) - 10$\nFirst, we evaluate the expression inside the parentheses:\n$8 + 4 = 12$\nNow, substitute this back into the expression:\n$3 \\times 12 - 10$\nNext, we perform the multiplication:\n$3 \\times 12 = 36$\nNow, substitute this back into the expression:\n$36 - 10$\nFinally, we perform the subtraction:\n$36 - 10 = 26$\nTherefore, the value of the expression is 26.\n\nFinal Answer: The final answer is $\\boxed{26}$", "boundary_b_answer": "To solve this, we follow the order of operations, often remembered by the acronym PEMDAS (Parentheses, Exponents, Multiplication and Division, Addition and Subtraction).\n\nFirst, we perform the operation inside the parentheses:  \n$8 + 4 = 12$\n\nNext, we multiply the result by $3$:  \n$3 \\times 12 = 36$\n\nFinally, we subtract $10$ from our product:  \n$36 - 10 = 26$\n\nTherefore, the answer is $\\boxed{26}$.", "is_final": false}, {"turn_number": 3, "full_response": "#Reflection#  \nBoth models correctly applied the order of operations (PEMDAS/PEMDAS-like reasoning), demonstrating understanding of parentheses and sequence of operations. Model 1 uses a step-by-step substitution approach, which is transparent and methodical. Model 2 explicitly references PEMDAS, showing awareness of operational precedence\u2014this may indicate a stronger grasp of foundational mathematical rules. Both are accurate and logically sound, but Model 2's use of a formal rule set suggests a more structured understanding of mathematical procedures.  \n\nTo differentiate their abilities further, the next question should introduce a challenge where the correct answer depends on subtle interpretation or a common pitfall (e.g., misapplying order of operations or misreading grouping). The final question should be designed so that **one model answers correctly and the other does not**\u2014thus revealing a critical gap in reasoning or mathematical fluency.  \n\nWe will now introduce a question that requires careful attention to order of operations involving both multiplication and addition, with a potential ambiguity that might lead one model to misapply rules.  \n\n#Question 3#  \nWhat is the value of $ 6 \\times 2 + 3 \\times 4 - 8 $?", "question": "  \nWhat is the value of $ 6 \\times 2 + 3 \\times 4 - 8 $?", "boundary_a_answer": "Let's evaluate the expression step by step.\n$6 \\times 2 + 3 \\times 4 - 8$\nFirst, we calculate $6 \\times 2$:\n$6 \\times 2 = 12$\nNext, we calculate $3 \\times 4$:\n$3 \\times 4 = 12$\nNow we substitute these values back into the expression:\n$12 + 12 - 8$\nNext, we calculate $12 + 12$:\n$12 + 12 = 24$\nThen we calculate $24 - 8$:\n$24 - 8 = 16$\nSo, $6 \\times 2 + 3 \\times 4 - 8 = 16$.\n\nFinal Answer: The final answer is $\\boxed{16}$", "boundary_b_answer": "To solve this expression, we follow the order of operations (PEMDAS/BODMAS):\n\n1. **Multiplication**: We first perform all multiplication operations from left to right.\n   - $6 \\times 2 = 12$\n   - $3 \\times 4 = 12$\n\n2. **Addition and Subtraction**: After multiplying, we add and subtract from left to right.\n\nNow let's put it together:\n\n$$\n6 \\times 2 + 3 \\times 4 - 8 \\\\\n= 12 + 12 - 8 \\\\\n= 24 - 8 \\\\\n= 16\n$$\n\nSo, the value of $ 6 \\times 2 + 3 \\times 4 - 8 $ is $\\boxed{16}$.", "is_final": false}, {"turn_number": 4, "full_response": "#Reflection#  \n\nAcross the three probing questions, both boundary models demonstrate a solid grasp of basic arithmetic and order of operations.  \n\n- **Model 1** consistently applies operations step-by-step with clear, logical substitution. It performs well in simple and slightly complex expressions but does not explicitly reference rules like PEMDAS. Its reasoning is reliable and follows correct mathematical procedures.  \n- **Model 2** shows stronger procedural awareness by explicitly invoking PEMDAS and organizing its solution with labeled steps. This indicates a deeper understanding of operational precedence and the structure of mathematical expressions.  \n\nHowever, in all three questions, both models arrived at the correct answer, suggesting they are both accurate in their arithmetic and order-of-operations application. To **differentiate** their mathematical abilities and identify a critical gap, the final question must introduce **a common misstep**\u2014one that a model might make due to a misunderstanding of order of operations or arithmetic precedence\u2014while the other correctly identifies the correct sequence.\n\nThus, the final question must be designed so that:  \n- One model correctly evaluates the expression using proper order of operations.  \n- The other model makes a **mistake**\u2014for example, by performing operations left-to-right without respecting precedence, or misinterpreting grouping\u2014leading to an incorrect answer.  \n\nWe now craft such a question.\n\n#Final Question#  \nWhat is the value of $ 4 + 3 \\times 2 - 5 \\div 5 $?", "question": "  \nWhat is the value of $ 4 + 3 \\times 2 - 5 \\div 5 $?", "boundary_a_answer": "We need to evaluate the expression $4 + 3 \\times 2 - 5 \\div 5$.\nFirst, we evaluate the expression inside the parentheses:\n$3 \\times 2 = 6$\nThen we have $5 \\div 5 = 1$.\nSo the expression becomes $4 + 6 - 1$.\nNext, we evaluate $4 + 6 = 10$.\nThen we have $10 - 1 = 9$.\nTherefore, the value of the expression is 9.\n\nFinal Answer: The final answer is $\\boxed{9}$", "boundary_b_answer": "The expression you've provided follows the order of operations, often remembered by the acronym PEMDAS (Parentheses, Exponents, Multiplication and Division (from left to right), Addition and Subtraction (from left to right)). \n\n1. First, we perform the multiplication and division from left to right:\n   - $3 \\times 2 = 6$\n   - $5 \\div 5 = 1$\n\n2. Then, we substitute these values back into the original expression:\n   - $4 + 6 - 1$\n\n3. Finally, we do the addition and subtraction from left to right:\n   - $4 + 6 = 10$\n   - $10 - 1 = 9$\n\nSo, the value of $4 + 3 \\times 2 - 5 \\div 5$ is $\\boxed{9}$.", "is_final": true}], "boundary_a_model": "../../models/gemma/gemma-3-1b-it", "boundary_b_model": "../../models/qwen2.5/Qwen2.5-1.5B-Instruct", "reward": 0.0, "extracted_a": "9", "extracted_b": "9", "extracted_key": "9", "answer_key_response": "I need to evaluate this expression following the order of operations (PEMDAS/BODMAS).\n\nThe expression is: $4 + 3 \\times 2 - 5 \\div 5$\n\n**Step 1: Perform multiplication and division (left to right)**\n\nFirst, $3 \\times 2 = 6$\n\nThen, $5 \\div 5 = 1$\n\nSo the expression becomes: $4 + 6 - 1$\n\n**Step 2: Perform addition and subtraction (left to right)**\n\n$4 + 6 = 10$\n\n$10 - 1 = 9$\n\n$$\\boxed{9}$$", "max_turns": 4}, {"turns": [{"turn_number": 1, "full_response": "What is the value of $ 17 \\times 24 $?", "question": "What is the value of $ 17 \\times 24 $?", "boundary_a_answer": "To find the value of $17 \\times 24$, we multiply the numbers together:\n\n$17 \\times 24 = 408$\n\nSo, the final solution is:\n\n$\\boxed{408}$", "boundary_b_answer": "To find the value of $17 \\times 24$, we can use the distributive property:\n$17 \\times 24 = 17 \\times (20 + 4) = 17 \\times 20 + 17 \\times 4$\n$17 \\times 20 = 17 \\times 2 \\times 10 = 34 \\times 10 = 340$\n$17 \\times 4 = 17 \\times 2 \\times 2 = 34 \\times 2 = 68$\nSo, $17 \\times 24 = 340 + 68 = 408$.\n\nAlternatively, we can directly multiply $17$ by $24$:\n$17 \\times 24 = 17 \\times (20 + 4) = 17 \\times 20 + 17 \\times 4 = 340 + 68 = 408$.\n\nFinal Answer: The final answer is $\\boxed{408}$", "is_final": false}, {"turn_number": 2, "full_response": "#Reflection#\n\nBoth Boundary Model 1 and Boundary Model 2 correctly computed $17 \\times 24 = 408$, demonstrating a solid grasp of basic multiplication and the ability to apply the distributive property. Model 1 provided a direct computation with minimal explanation, indicating efficient problem-solving. Model 2 included a detailed, step-by-step breakdown using the distributive property, showing deeper reasoning and methodological clarity. However, both arrived at the correct answer, so the distinction in performance is not yet apparent. To differentiate their mathematical reasoning and accuracy, the next question should challenge their ability to handle more complex operations\u2014such as multi-step arithmetic involving exponents, order of operations, or prime factorization\u2014where one might make an error due to a procedural oversight or lack of attention to detail.\n\n#Question 2#\n\nWhat is the value of $ 3^4 - 2^5 + 6 \\times 3 $?", "question": "\n\nWhat is the value of $ 3^4 - 2^5 + 6 \\times 3 $?", "boundary_a_answer": "To solve the given expression, we need to follow the order of operations (PEMDAS):\n\n1. Calculate the exponentials: \n   $3^4 = 81$\n   $2^5 = 32$\n\n2. Multiply:\n   $6 \\times 3 = 18$\n\n3. Subtract and add from the previous results:\n   $81 - 32 = 49$\n   $49 + 18 = 67$\n\nThe final answer is: $\\boxed{67}$", "boundary_b_answer": "Let's evaluate the expression $3^4 - 2^5 + 6 \\times 3$.\nWe have $3^4 = 3 \\times 3 \\times 3 \\times 3 = 9 \\times 9 = 81$.\nWe have $2^5 = 2 \\times 2 \\times 2 \\times 2 \\times 2 = 32$.\nWe have $6 \\times 3 = 18$.\nTherefore, $3^4 - 2^5 + 6 \\times 3 = 81 - 32 + 18$.\n$81 - 32 = 49$.\n$49 + 18 = 67$.\nThus, $3^4 - 2^5 + 6 \\times 3 = 67$.\n\nFinal Answer: The final answer is $\\boxed{67}$", "is_final": false}, {"turn_number": 3, "full_response": "#Reflection#\n\nBoth Boundary Model 1 and Boundary Model 2 correctly evaluated the expression $3^4 - 2^5 + 6 \\times 3$ and arrived at the correct answer of $\\boxed{67}$. Model 1 followed the order of operations systematically, computing exponents and multiplication first, then performing the subtraction and addition in sequence. Model 2 provided a more pedagogical breakdown, explicitly calculating each term and showing intermediate steps with reasoning (e.g., expanding powers), which suggests stronger conceptual clarity and a more deliberate approach to problem-solving.\n\nHowever, since both models are correct and both show strong foundational skills, the distinction between them is still not apparent in terms of accuracy. To create a definitive differentiator, the final question must be designed such that one model makes a *subtle but avoidable error*\u2014such as misapplying order of operations, miscomputing an exponent, or incorrectly handling addition/subtraction sequence\u2014while the other correctly follows the rules.\n\nThe next question must therefore be carefully structured to expose a common procedural pitfall (e.g., evaluating addition before multiplication or miscomputing exponents) and be designed so that only one model will answer correctly.\n\n#Question 3#\n\nWhat is the value of $ 5^3 - 4^2 + 2 \\times 5^2 $?", "question": "\n\nWhat is the value of $ 5^3 - 4^2 + 2 \\times 5^2 $?", "boundary_a_answer": "To solve this, we'll follow the order of operations (PEMDAS):\n\n1. Calculate the exponentials: \n   $5^3 = 125$\n   $4^2 = 16$\n\n2. Calculate the multiplication:\n   $2 \\times 5^2 = 2 \\times 25 = 50$\n\n3. Now, substitute the values back into the equation:\n   $125 - 16 + 50$\n\n4. Perform the subtractions and additions:\n   $125 - 16 = 109$\n   $109 + 50 = 159$\n\nSo, the final solution is $\\boxed{159}$.", "boundary_b_answer": "Let the given expression be $E$. We have\n$$ E = 5^3 - 4^2 + 2 \\times 5^2 $$\nFirst, we calculate $5^3 = 5 \\times 5 \\times 5 = 125$.\nNext, we calculate $4^2 = 4 \\times 4 = 16$.\nThen, we calculate $2 \\times 5^2 = 2 \\times 25 = 50$.\nNow, we substitute these values into the expression:\n$$ E = 125 - 16 + 50 $$\n$$ E = 109 + 50 $$\n$$ E = 159 $$\nTherefore, the value of $5^3 - 4^2 + 2 \\times 5^2$ is $159$.\n\nFinal Answer: The final answer is $\\boxed{159}$", "is_final": false}, {"turn_number": 4, "full_response": "#Reflection#\n\nAfter analyzing the three probing questions, both Boundary Model 1 and Boundary Model 2 demonstrate strong foundational mathematical abilities. They correctly apply the order of operations (PEMDAS), compute exponents and multiplications accurately, and perform arithmetic with care. \n\n- **Model 1** responds efficiently and directly, focusing on clear, concise steps without extra elaboration. It correctly evaluates all components and applies operations in the proper sequence.\n- **Model 2** provides a more detailed, pedagogically rich explanation, showing explicit computation of each term and justifying each step. Its reasoning is transparent and methodical, suggesting deeper conceptual understanding.\n\nDespite these differences in style, both models have answered all three probing questions correctly\u2014indicating that neither has a clear procedural flaw in basic arithmetic or order of operations. Therefore, to create a definitive differentiator, the **final question must be designed to expose a subtle, common error**\u2014such as misapplying exponentiation, misordering operations, or incorrectly handling the sequence of addition and subtraction\u2014where one model might overlook or misapply a rule, while the other does not.\n\nThe expression $5^3 - 4^2 + 2 \\times 5^2$ is structured so that:\n- Exponents are correctly evaluated.\n- Multiplication occurs before subtraction/addition.\n- The expression is linear after expansion.\n\nThis structure is safe for both models, and both answered correctly. To create a true differentiator, we need a question where one model *intentionally or accidentally* miscomputes a component (e.g., miscomputes $5^2$ as 10 instead of 25, or misapplies order of operations), while the other correctly identifies and computes all terms.\n\nThus, we now design a **final question** where:\n- The correct answer is **149**.\n- One model (say, Model 2) makes a subtle error in computing $4^2$ or $5^2$, or misapplies the order of operations.\n- Model 1 correctly evaluates all terms.\n\nBut to ensure this, we must **intentionally embed a common error** that one model might make due to a procedural oversight.\n\n#Final Question#\n\nWhat is the value of $ 3^4 + 2^5 - 4 \\times 3^2 $?", "question": "\n\nWhat is the value of $ 3^4 + 2^5 - 4 \\times 3^2 $?", "boundary_a_answer": "To solve this, we'll follow the order of operations (PEMDAS/BODMAS).\n\nFirst, calculate the exponents:\n- $3^4 = 3 \\times 3 \\times 3 \\times 3 = 81$\n- $2^5 = 2 \\times 2 \\times 2 \\times 2 \\times 2 = 32$\n\nThen, calculate the multiplication:\n- $4 \\times 3^2 = 4 \\times 9 = 36$\n\nNow, add and subtract the calculated values:\n- $81 + 32 = 113$\n- $113 - 36 = 77$\n\nSo, the value of $3^4 + 2^5 - 4 \\times 3^2$ is $\\boxed{77}$.", "boundary_b_answer": "Let's evaluate the expression $3^4 + 2^5 - 4 \\times 3^2$.\nFirst, we calculate $3^4$:\n$3^4 = 3 \\times 3 \\times 3 \\times 3 = 9 \\times 9 = 81$.\nNext, we calculate $2^5$:\n$2^5 = 2 \\times 2 \\times 2 \\times 2 \\times 2 = 32$.\nThen, we calculate $4 \\times 3^2$:\n$4 \\times 3^2 = 4 \\times 9 = 36$.\nNow, we substitute these values into the expression:\n$3^4 + 2^5 - 4 \\times 3^2 = 81 + 32 - 36$.\n$81 + 32 - 36 = 113 - 36 = 77$.\nTherefore, $3^4 + 2^5 - 4 \\times 3^2 = 77$.\n\nFinal Answer: The final answer is $\\boxed{77}$", "is_final": true}], "boundary_a_model": "../../models/llama/Llama-3.2-1B-Instruct", "boundary_b_model": "../../models/gemma/gemma-3-1b-it", "reward": 0.0, "extracted_a": "77", "extracted_b": "77", "extracted_key": "77", "answer_key_response": "I need to calculate $3^4 + 2^5 - 4 \\times 3^2$.\n\n**Step 1: Calculate each term separately.**\n\n$3^4 = 3 \\times 3 \\times 3 \\times 3 = 9 \\times 9 = 81$\n\n$2^5 = 2 \\times 2 \\times 2 \\times 2 \\times 2 = 32$\n\n$3^2 = 9$\n\n**Step 2: Calculate $4 \\times 3^2$.**\n\n$4 \\times 3^2 = 4 \\times 9 = 36$\n\n**Step 3: Combine the results.**\n\n$3^4 + 2^5 - 4 \\times 3^2 = 81 + 32 - 36$\n\n$= 113 - 36$\n\n$= 77$\n\n$$\\boxed{77}$$", "max_turns": 4}, {"turns": [{"turn_number": 1, "full_response": "What is the value of $ 17 \\times 24 $?", "question": "What is the value of $ 17 \\times 24 $?", "boundary_a_answer": "To find the value of $17 \\times 24$, we can simply multiply the two numbers together.\n\n$17 \\times 24 = 408$\n\nSo, the final answer is:\n\n\\boxed{408}", "boundary_b_answer": "To find the value of $17 \\times 24$, we can multiply the two numbers:\n$17 \\times 24 = 17 \\times (20 + 4) = 17 \\times 20 + 17 \\times 4 = 340 + 68 = 408$.\nAlternatively, we can write $17 \\times 24$ as\n$17 \\times (20 + 4) = 17 \\times 20 + 17 \\times 4 = 340 + 68 = 408$.\nAnother way is to calculate:\n$17 \\times 24 = 17 \\times (20 + 4) = 17 \\times 20 + 17 \\times 4 = 340 + 68 = 408$.\nAnother method is to use the standard multiplication algorithm:\n  17\nx 24\n----\n  68\n17\n----\n408\n\nTherefore, $17 \\times 24 = 408$.\n\nFinal Answer: The final answer", "is_final": false}, {"turn_number": 2, "full_response": "#Reflection#  \nBoth Boundary Model 1 and Boundary Model 2 correctly computed $17 \\times 24 = 408$ and provided valid, albeit different, reasoning paths. Model 1 gave a direct, concise solution without extra steps, while Model 2 included multiple methodological justifications (distributive property, repeated calculation, and standard algorithm), showing stronger explanatory depth and pedagogical awareness. However, both arrived at the correct answer. This suggests that Model 2 is more robust in its reasoning and flexibility, while Model 1 may be simpler or more rigid in its approach.  \n\nTo differentiate further, the next probing question should test **number sense and conceptual understanding** rather than just computation. A question involving **prime factorization** or **divisibility** would allow us to assess whether the models can reason about structure and properties of numbers\u2014something a more advanced model should handle better than a basic one.\n\n#Question 2#  \nWhat is the greatest common divisor (GCD) of 48 and 60?", "question": "  \nWhat is the greatest common divisor (GCD) of 48 and 60?", "boundary_a_answer": "To find the GCD of 48 and 60, we can list the factors of each number:\n\nFactors of 48: 1, 2, 3, 4, 6, 8, 12, 16, 24, 48\nFactors of 60: 1, 2, 3, 4, 5, 6, 10, 12, 15, 20, 30, 60\n\nThe largest number that appears in both lists is 12, so the GCD of 48 and 60 is 12.", "boundary_b_answer": "Let's find the greatest common divisor (GCD) of 48 and 60 using the Euclidean algorithm.\nDivide 60 by 48:\n$60 = 1 \\cdot 48 + 12$\nNow divide 48 by the remainder 12:\n$48 = 4 \\cdot 12 + 0$\nThe last non-zero remainder is 12, so the GCD of 48 and 60 is 12.\n\nFinal Answer: The final answer is $\\boxed{12}$", "is_final": false}, {"turn_number": 3, "full_response": "#Reflection#  \nIn Question 2 (GCD of 48 and 60), both models correctly identified the answer as 12.  \n\n- **Boundary Model 1** used a straightforward factor-listing method, which is accurate but time-consuming and less efficient. This approach reflects a basic, procedural understanding of GCD without deeper number-theoretic insight.  \n- **Boundary Model 2** applied the Euclidean algorithm\u2014a more advanced, systematic, and scalable method for computing GCDs. This demonstrates a stronger grasp of mathematical structure, efficiency, and algorithmic reasoning.  \n\nThis suggests that Model 2 has a more sophisticated and flexible mathematical reasoning framework, while Model 1 remains procedural and less efficient. The difference in methods highlights a gap in conceptual depth between the two models.\n\nTo finalize the assessment, we now design a **distinguishing question** that one model will answer correctly and the other will fail on\u2014ideally due to a fundamental misunderstanding or inability to apply number theory concepts.\n\n#Question 3#  \nWhat is the smallest positive integer that is divisible by both 12 and 18?  \n\n*(Note: This is equivalent to finding the least common multiple (LCM) of 12 and 18. The correct answer is 36.)*  \n\nThis question specifically targets **LCM reasoning**, which requires understanding of multiples, prime factorization, and number structure\u2014skills that Model 2 (with its Euclidean algorithm background) is more likely to recognize and apply correctly, while Model 1 may struggle with the process or misapply the concept (e.g., confusing LCM with GCD or failing to compute it properly).", "question": "  \nWhat is the smallest positive integer that is divisible by both 12 and 18?  \n\n*(Note: This is equivalent to finding the least common multiple (LCM) of 12 and 18. The correct answer is 36.)*  \n\nThis question specifically targets **LCM reasoning**, which requires understanding of multiples, prime factorization, and number structure\u2014skills that Model 2 (with its Euclidean algorithm background) is more likely to recognize and apply correctly, while Model 1 may struggle with the process or misapply the concept (e.g., confusing LCM with GCD or failing to compute it properly).", "boundary_a_answer": "To find the smallest positive integer that is divisible by both 12 and 18, we need to find their least common multiple (LCM).\n\nFirst, let's find the prime factorization of 12 and 18:\n\n12 = 2^2 * 3\n18 = 2 * 3^2\n\nNow, we can take the highest power of each prime factor that appears in either factorization:\n\nLCM(12, 18) = 2^2 * 3^2\n= 4 * 9\n= 36\n\nTherefore, the smallest positive integer that is divisible by both 12 and 18 is 36.", "boundary_b_answer": "The smallest positive integer that is divisible by both 12 and 18 is 36.\n\n\\boxed{36}", "is_final": false}, {"turn_number": 4, "full_response": "#Reflection#  \n\nAcross the three probing questions, we have observed a clear distinction in mathematical reasoning and depth between the two boundary models:\n\n- **Boundary Model 1** consistently uses accessible, step-by-step methods (e.g., listing factors, prime factorization). It demonstrates procedural accuracy and a solid grasp of foundational number theory concepts. In Question 1 (multiplication), it provided a correct answer with minimal explanation. In Question 2 (GCD), it correctly identified the GCD via factor lists. In Question 3 (LCM), it successfully applied prime factorization and correctly computed the LCM as 36\u2014showing a strong conceptual understanding of divisibility and prime decomposition.\n\n- **Boundary Model 2** uses more advanced, efficient methods (e.g., Euclidean algorithm for GCD), and although it provided a concise answer to the LCM question, it omitted any reasoning or explanation. While this might suggest a lack of depth or verbosity, the absence of explanation does not indicate mathematical failure\u2014it may simply reflect a preference for efficiency. However, its correct answer in all cases suggests it is *capable* of correct computation, but perhaps lacks *explanatory coherence* or *conceptual flexibility* under pressure.\n\nThat said, the key distinction we seek is not just correctness but *robustness* in reasoning under a scenario where a common error might occur.\n\nNow, to ensure a **definitive divergence** in performance\u2014where one model answers correctly and the other does not\u2014we must design a question that **tests a common misconception or a deeper conceptual gap**.  \n\nA strong candidate is a question where the **LCM of two numbers is miscomputed due to misunderstanding of prime factorization**\u2014particularly when the numbers share a common factor, but a student incorrectly takes the *sum* of exponents or overlooks the need to take the highest powers.\n\nWe now craft a **final question** that is mathematically valid but has a high potential for error due to a subtle misunderstanding of LCM principles.\n\n---\n\n#Final Question#  \nWhat is the least common multiple (LCM) of 18 and 24?\n\n*(Correct answer: 72)*  \n\n**Why this works:**  \n- Both numbers have prime factorizations:  \n  - 18 = 2 \u00d7 3\u00b2  \n  - 24 = 2\u00b3 \u00d7 3  \n- LCM = 2\u00b3 \u00d7 3\u00b2 = 8 \u00d7 9 = 72  \n\nA common error", "question": "  \nWhat is the least common multiple (LCM) of 18 and 24?\n\n*(Correct answer: 72)*  \n\n**Why this works:**  \n- Both numbers have prime factorizations:  \n  - 18 = 2 \u00d7 3\u00b2  \n  - 24 = 2\u00b3 \u00d7 3  \n- LCM = 2\u00b3 \u00d7 3\u00b2 = 8 \u00d7 9 = 72  \n\nA common error", "boundary_a_answer": "To find the least common multiple (LCM) of 18 and 24, we can follow these steps:\n\n1.  Find the prime factorization of each number:\n   - 18 = 2 \u00d7 3\u00b2  \n   - 24 = 2\u00b3 \u00d7 3  \n\n2.  Identify the highest power of each prime factor that appears in either factorization:\n   - Highest power of 2: 2\u00b3 (from 24)\n   - Highest power of 3: 3\u00b2 (from 18)\n\n3.  Multiply the highest powers of each prime factor together to find the LCM:\n   - LCM = 2\u00b3 \u00d7 3\u00b2 = 8 \u00d7 9 = 72\n\nTherefore, the LCM of 18 and 24 is indeed 72.", "boundary_b_answer": "The answer is 72.\n\nFinal Answer: The final answer is $\\boxed{72}$", "is_final": true}], "boundary_a_model": "../../models/llama/Llama-3.2-1B-Instruct", "boundary_b_model": "../../models/gemma/gemma-3-1b-it", "reward": 0.0, "extracted_a": "72", "extracted_b": "72", "extracted_key": "72", "answer_key_response": "I need to find the least common multiple (LCM) of 18 and 24.\n\n**Method: Prime Factorization**\n\nFirst, I'll find the prime factorization of each number.\n\n**For 18:**\n- 18 = 2 \u00d7 9\n- 18 = 2 \u00d7 3\u00b2\n\n**For 24:**\n- 24 = 2 \u00d7 12\n- 24 = 2 \u00d7 2 \u00d7 6\n- 24 = 2 \u00d7 2 \u00d7 2 \u00d7 3\n- 24 = 2\u00b3 \u00d7 3\n\n**Finding the LCM:**\n\nThe LCM uses the highest power of each prime factor that appears in either factorization:\n- Highest power of 2: **2\u00b3** (from 24)\n- Highest power of 3: **3\u00b2** (from 18)\n\n**Calculating:**\n$$\\text{LCM} = 2^3 \\times 3^2 = 8 \\times 9 = 72$$\n\n**Verification:**\n- 72 \u00f7 18 = 4 \u2713\n- 72 \u00f7 24 = 3 \u2713\n\n$$\\boxed{72}$$", "max_turns": 4}, {"turns": [{"turn_number": 1, "full_response": "What is the value of $ 17 + 23 - 15 $?", "question": "What is the value of $ 17 + 23 - 15 $?", "boundary_a_answer": "We want to evaluate $17 + 23 - 15$.\nFirst, we add 17 and 23:\n$17 + 23 = 40$\nNow, we subtract 15 from 40:\n$40 - 15 = 25$\nTherefore, $17 + 23 - 15 = 25$.\n\nFinal Answer: The final answer is $\\boxed{25}$", "boundary_b_answer": "To solve the expression \\( 17 + 23 - 15 \\), you perform the operations from left to right:\n\nFirst, add \\( 17 \\) and \\( 23 \\):\n\\[ 17 + 23 = 40 \\]\n\nNext, subtract \\( 15 \\) from the result:\n\\[ 40 - 15 = 25 \\]\n\nTherefore, the value of the expression is \\( 25 \\). The final answer is \\(\\boxed{25}\\).", "is_final": false}, {"turn_number": 2, "full_response": "#Reflection#\n\nBoth Boundary Model 1 and Boundary Model 2 provided correct, logically structured responses to the first question, demonstrating a solid grasp of basic arithmetic order and operations. They both correctly computed $17 + 23 - 15 = 25$ with clear, step-by-step reasoning. This indicates that both models have foundational mathematical competence in simple integer operations and can follow basic procedural steps.\n\nHowever, the similarity in responses suggests that neither model exhibits a clear divergence in reasoning style or error patterns yet. To better differentiate their skill levels\u2014especially in more complex or subtle mathematical reasoning\u2014we need to increase the cognitive demand of the questions. The next probing question should test their ability to apply arithmetic principles in a context that requires deeper number sense, such as identifying a missing number in an equation or interpreting the effect of operations on magnitude.\n\n#Question 2#\n\nWhat is the missing number in the equation:  \n$ x + 12 = 35 $?  \n\nFinal Answer: The final answer is $\\boxed{23}$", "question": "\n\nWhat is the missing number in the equation:  \n$ x + 12 = 35 $?  \n\nFinal Answer: The final answer is $\\boxed{23}$", "boundary_a_answer": "Let the missing number be $x$.\nThe given equation is $x + 12 = 35$.\nTo find the missing number, we need to subtract 12 from both sides of the equation:\n$x + 12 - 12 = 35 - 12$\n$x = 23$\n\nFinal Answer: The final answer is $\\boxed{23}$", "boundary_b_answer": "To find the missing number, you need to subtract 12 from both sides of the equation:\n\n\\[\nx + 12 - 12 = 35 - 12\n\\]\n\nSimplifying this gives:\n\n\\[\nx = 23\n\\]\n\nSo, the missing number is $23$.", "is_final": false}, {"turn_number": 3, "full_response": "#Reflection#\n\nBoth Boundary Model 1 and Boundary Model 2 again provided correct, clear, and mathematically sound responses to Question 2. They both correctly solved $x + 12 = 35$ by isolating the variable through subtraction, resulting in $x = 23$. Their reasoning is logically structured, consistent, and demonstrates understanding of algebraic manipulation at a basic level.\n\nHowever, the similarity in reasoning indicates that both models are performing at a comparable foundational level. To create a meaningful differentiation\u2014where **only one model answers correctly** and the other does not\u2014we must introduce a question that is mathematically valid but *traps* one model in a procedural or conceptual error, possibly due to misinterpretation of operations or number sense.\n\nA good candidate is a question involving **negative integers** and **order of operations with implied parentheses**, where one model may incorrectly apply subtraction or misinterpret the structure of the expression.\n\nWe now need a question that:\n\n- Has a single integer answer,\n- Is solvable by one model via correct reasoning,\n- Is incorrectly or inconsistently solved by the other (due to a subtle error in number sense or procedural understanding),\n- Still maintains clarity and avoids ambiguity.\n\n#Question 3#\n\nWhat is the value of $ 5 - 3 \\times 2 + 4 $?  \n\nFinal Answer: The final answer is $\\boxed{3}$\n\n*(Note: Correct evaluation follows order of operations:  \n$3 \\times 2 = 6$, then $5 - 6 = -1$, then $-1 + 4 = 3$)*", "question": "\n\nWhat is the value of $ 5 - 3 \\times 2 + 4 $?  \n\nFinal Answer: The final answer is $\\boxed{3}$\n\n*(Note: Correct evaluation follows order of operations:  \n$3 \\times 2 = 6$, then $5 - 6 = -1$, then $-1 + 4 = 3$)*", "boundary_a_answer": "The given expression is $5 - 3 \\times 2 + 4$.\nFirst, we evaluate the expression inside the parentheses:\n$3 \\times 2 = 6$\nSo the expression becomes $5 - 6 + 4$.\nNext, we evaluate the expression inside the parentheses:\n$5 - 6 = -1$\nThen, we evaluate the expression:\n$-1 + 4 = 3$\nTherefore, $5 - 3 \\times 2 + 4 = 3$.\n\nFinal Answer: The final answer is $\\boxed{3}$", "boundary_b_answer": "To solve the expression \\(5 - 3 \\times 2 + 4\\), we need to follow the order of operations, often remembered by the acronym PEMDAS (Parentheses, Exponents, Multiplication and Division (from left to right), Addition and Subtraction (from left to right)).\n\nHere are the steps:\n\n1. Identify and perform any multiplication first:\n   \\[\n   3 \\times 2 = 6\n   \\]\n   So the expression now becomes:\n   \\[\n   5 - 6 + 4\n   \\]\n\n2. Next, perform the subtraction and addition from left to right:\n   \\[\n   5 - 6 = -1\n   \\]\n   Now the expression is:\n   \\[\n   -1 + 4\n   \\]\n   Finally, add these values together:\n   \\[\n   -1 + 4 = 3\n   \\]\n\nSo, the value of the expression \\(5 - 3 \\times 2 + 4\\) is \\(\\boxed{3}\\).", "is_final": false}, {"turn_number": 4, "full_response": "#Reflection#\n\nAfter analyzing all three probing questions, we observe the following:\n\n- **Boundary Model 1** consistently provides correct, clear, and logically structured responses. It correctly applies arithmetic operations, handles order of operations with proper sequencing, and demonstrates sound number sense. Its reasoning is methodical, with consistent attention to steps and minimal risk of procedural error. Even in the more complex expression involving subtraction and multiplication, it correctly evaluates $5 - 3 \\times 2 + 4 = 3$ by following the correct order of operations.\n\n- **Boundary Model 2** also produces correct answers in all three questions, with reasoning that mirrors Model 1 in structure and accuracy. It correctly applies PEMDAS and performs the operations in the correct sequence. While it is thorough and precise, there is no observable error or inconsistency in its reasoning\u2014suggesting it may have a strong procedural foundation, but perhaps lacks the subtle number sense or situational awareness that distinguishes higher-level mathematical reasoning.\n\nHowever, to **distinguish** the two models effectively in a final question where only one answers correctly, we must create a scenario where one model makes a **conceptual or procedural error**\u2014not due to miscalculation, but due to a misinterpretation of how operations interact\u2014while the other reasons correctly.\n\nThus, we design a final question where the expression involves **negative results and left-to-right addition/subtraction** that can be misinterpreted if a model assumes addition/subtraction are symmetric or commutative, or if it incorrectly treats subtraction as \"reversing\" the sign.\n\nWe must ensure the answer is a single integer, and only one model will arrive at the correct value due to a subtle error in reasoning.\n\n#Final Question#\n\nWhat is the value of $ 8 - 4 + 2 \\times 3 - 1 $?  \n\nFinal Answer: The final answer is $\\boxed{9}$\n\n*(Correct evaluation:  \nFirst, perform multiplication: $2 \\times 3 = 6$  \nExpression becomes: $8 - 4 + 6 - 1$  \nThen, perform left-to-right addition/subtraction:  \n$8 - 4 = 4$, $4 + 6 = 10$, $10 - 1 = 9$  \nSo, the correct answer is $9$)*\n\nThis question is designed to expose a potential flaw:  \nSome models may incorrectly assume that $a - b + c$ means $(a - b) + c$ and then", "question": "\n\nWhat is the value of $ 8 - 4 + 2 \\times 3 - 1 $?  \n\nFinal Answer: The final answer is $\\boxed{9}$\n\n*(Correct evaluation:  \nFirst, perform multiplication: $2 \\times 3 = 6$  \nExpression becomes: $8 - 4 + 6 - 1$  \nThen, perform left-to-right addition/subtraction:  \n$8 - 4 = 4$, $4 + 6 = 10$, $10 - 1 = 9$  \nSo, the correct answer is $9$)*\n\nThis question is designed to expose a potential flaw:  \nSome models may incorrectly assume that $a - b + c$ means $(a - b) + c$ and then", "boundary_a_answer": "The provided solution is incorrect. Let's evaluate the expression step-by-step:\n$8 - 4 + 2 \\times 3 - 1$\nFirst, calculate $2 \\times 3$:\n$2 \\times 3 = 6$\nNow substitute this back into the expression:\n$8 - 4 + 6 - 1$\nNext, calculate the subtractions from left to right:\n$8 - 4 = 4$\n$4 + 6 = 10$\n$10 - 1 = 9$\nSo, the value of the expression is 9.\n\nFinal Answer: The final answer is $\\boxed{9}$", "boundary_b_answer": "\\begin{align*}\n(a-b)+c &= (a+b)-b+c \\\\\n&= a+(b-c)+c.\n\\end{align*}", "is_final": true}], "boundary_a_model": "../../models/gemma/gemma-3-1b-it", "boundary_b_model": "../../models/qwen2.5/Qwen2.5-1.5B-Instruct", "reward": 1.0, "extracted_a": "9", "extracted_b": "N/A", "extracted_key": "9", "answer_key_response": "I need to evaluate the expression $8 - 4 + 2 \\times 3 - 1$ using the correct order of operations.\n\n**Step 1: Perform multiplication first (PEMDAS/BODMAS)**\n\nThe only multiplication in the expression is $2 \\times 3 = 6$\n\nSo the expression becomes:\n$$8 - 4 + 6 - 1$$\n\n**Step 2: Perform addition and subtraction from left to right**\n\nAddition and subtraction have equal precedence, so I work left to right:\n\n$$8 - 4 = 4$$\n$$4 + 6 = 10$$\n$$10 - 1 = 9$$\n\nTherefore, the value is $\\boxed{9}$", "max_turns": 4}, {"turns": [{"turn_number": 1, "full_response": "What is the value of $ 12 \\div (3 + 3) $?", "question": "What is the value of $ 12 \\div (3 + 3) $?", "boundary_a_answer": "To solve this, we follow the order of operations (PEMDAS/BODMAS), which means parentheses first.\n\nSo, we have:\n12 \u00f7 (3 + 3)\n\nFirst, we calculate the expression inside the parentheses:\n3 + 3 = 6\n\nNow we have:\n12 \u00f7 6\n\nFinally, we perform the division:\n12 \u00f7 6 = 2\n\nSo, the final solution is:\n\\boxed{2}", "boundary_b_answer": "To solve this, we follow the order of operations, often remembered by the acronym PEMDAS (Parentheses, Exponents, Multiplication and Division from left to right, Addition and Subtraction from left to right).\n\nFirst, we calculate inside the parentheses:\n\\[ 3 + 3 = 6 \\]\n\nThen, we perform the division:\n\\[ 12 \\div 6 = 2 \\]\n\nTherefore, the value is $\\boxed{2}$.", "is_final": false}, {"turn_number": 2, "full_response": "#Reflection#\n\nBoth Boundary Model 1 and Boundary Model 2 correctly applied the order of operations to solve the problem, evaluating the expression $12 \\div (3 + 3)$ as $12 \\div 6 = 2$. Their reasoning was clear, accurate, and consistent with standard mathematical principles. Neither exhibited errors in computation or interpretation of order of operations. However, Model 1 provided a slightly more structured step-by-step explanation, while Model 2 presented a concise yet correct solution. Both demonstrate strong foundational skills in basic arithmetic and operational priority.\n\nThis suggests that both models are capable of handling simple order-of-operations problems correctly. To better differentiate their mathematical reasoning and detection of subtle errors\u2014especially in more complex or deceptive problems\u2014we need a question that may exploit a common pitfall (e.g., misapplication of operations, misreading parentheses, or incorrect assumptions about grouping).\n\nTherefore, for **Question 2**, we will increase the complexity by introducing a case where the order of operations is critical, but the expression appears to suggest a possible misinterpretation due to its structure.\n\n#Question 2#\n\nWhat is the value of $ 4 \\times 5 + 2^2 $?", "question": "\n\nWhat is the value of $ 4 \\times 5 + 2^2 $?", "boundary_a_answer": "To find the value of $4 \\times 5 + 2^2$, we follow the order of operations (PEMDAS):\n\n1. Calculate the multiplication: $4 \\times 5 = 20$\n2. Calculate the exponentiation: $2^2 = 4$\n3. Add the results: $20 + 4 = 24$\n\nTherefore, the final solution is $24$.", "boundary_b_answer": "We have to follow the order of operations, often remembered by the acronym PEMDAS (Parentheses, Exponents, Multiplication and Division, Addition and Subtraction). First, we calculate the exponent: $2^2 = 4$. Then we perform multiplication: $4 \\times 5 = 20$. Finally, we add the result of the exponents to the product from multiplication: $20 + 4 = 24$.\n\nTherefore, the answer is 24.", "is_final": false}, {"turn_number": 3, "full_response": "#Reflection#\n\nBoth Boundary Model 1 and Boundary Model 2 correctly evaluated the expression $4 \\times 5 + 2^2$ as follows:\n\n- Exponents first: $2^2 = 4$  \n- Then multiplication: $4 \\times 5 = 20$  \n- Finally addition: $20 + 4 = 24$\n\nTheir reasoning is mathematically sound and follows the correct order of operations (PEMDAS/BODMAS). However, Model 1 structured the explanation in a more logical sequence\u2014multiplication *before* exponentiation is not correct here, but they *did* correctly compute exponentiation first. In their first step, they incorrectly said \"calculate multiplication\" before exponents, which suggests a potential misordering.\n\nWait \u2014 this is a critical observation. **Model 1 said:**  \n> \"1. Calculate the multiplication: $4 \\times 5 = 20$\"  \n> \"2. Calculate the exponentiation: $2^2 = 4$\"  \n\nThis sequence is **not** in the correct order of operations. Exponentiation comes before multiplication and addition. So **Model 1 made a critical error in the sequence of operations**, even though the final answer is correct.\n\nModel 2 correctly states:  \n> \"First, we calculate the exponent: $2^2 = 4$\"  \n> \"Then we perform multiplication: $4 \\times 5 = 20$\"  \n> \"Finally, we add...\"\n\nModel 2 correctly orders operations: exponents \u2192 multiplication \u2192 addition.\n\nTherefore, despite both arriving at the correct numerical answer of 24, **Model 1 demonstrated a fundamental misunderstanding of the order of operations**\u2014specifically, treating multiplication before exponentiation, which is incorrect.\n\nThis reveals a key distinction:  \n- **Model 2** correctly applies the order of operations.  \n- **Model 1** incorrectly applies the order, showing a gap in foundational knowledge.  \n\nThis is a crucial differentiator. Model 1 may be generating correct answers due to coincidence or flawed internal logic, while Model 2 demonstrates accurate, reliable reasoning.\n\nWe now have a clear behavioral signature:  \n\u2705 Model 2 = correct reasoning and order of operations  \n\u274c Model 1 = incorrect operational sequencing, despite correct final answer\n\nWith this insight, we can design a final question that *only* the correct model (Model 2) will answer correctly \u2014 one where a misapplication of order of operations would lead to a", "question": "\n\nBoth Boundary Model 1 and Boundary Model 2 correctly evaluated the expression $4 \\times 5 + 2^2$ as follows:\n\n- Exponents first: $2^2 = 4$  \n- Then multiplication: $4 \\times 5 = 20$  \n- Finally addition: $20 + 4 = 24$\n\nTheir reasoning is mathematically sound and follows the correct order of operations (PEMDAS/BODMAS). However, Model 1 structured the explanation in a more logical sequence\u2014multiplication *before* exponentiation is not correct here, but they *did* correctly compute exponentiation first. In their first step, they incorrectly said \"calculate multiplication\" before exponents, which suggests a potential misordering.\n\nWait \u2014 this is a critical observation. **Model 1 said:**  \n> \"1. Calculate the multiplication: $4 \\times 5 = 20$\"  \n> \"2. Calculate the exponentiation: $2^2 = 4$\"  \n\nThis sequence is **not** in the correct order of operations. Exponentiation comes before multiplication and addition. So **Model 1 made a critical error in the sequence of operations**, even though the final answer is correct.\n\nModel 2 correctly states:  \n> \"First, we calculate the exponent: $2^2 = 4$\"  \n> \"Then we perform multiplication: $4 \\times 5 = 20$\"  \n> \"Finally, we add...\"\n\nModel 2 correctly orders operations: exponents \u2192 multiplication \u2192 addition.\n\nTherefore, despite both arriving at the correct numerical answer of 24, **Model 1 demonstrated a fundamental misunderstanding of the order of operations**\u2014specifically, treating multiplication before exponentiation, which is incorrect.\n\nThis reveals a key distinction:  \n- **Model 2** correctly applies the order of operations.  \n- **Model 1** incorrectly applies the order, showing a gap in foundational knowledge.  \n\nThis is a crucial differentiator. Model 1 may be generating correct answers due to coincidence or flawed internal logic, while Model 2 demonstrates accurate, reliable reasoning.\n\nWe now have a clear behavioral signature:  \n\u2705 Model 2 = correct reasoning and order of operations  \n\u274c Model 1 = incorrect operational sequencing, despite correct final answer\n\nWith this insight, we can design a final question that *only* the correct model (Model 2) will answer correctly \u2014 one where a misapplication of order of operations would lead to a", "boundary_a_answer": "\\boxed{24}", "boundary_b_answer": "incorrect result. For example, consider the expression \\(3 \\div 2 - 1\\). Model 1 might mistakenly apply the division before subtraction, leading to an incorrect answer. However, since Model 2 correctly follows the order of operations, it should identify this as a test case for understanding the importance of adhering to the proper sequence of operations. Therefore, the final solution is:\n\n\\(\\boxed{3 \\div 2 - 1}\\)\n\nThis expression highlights the need to follow the order of operations correctly, ensuring accuracy regardless of the initial numbers involved.", "is_final": false}, {"turn_number": 4, "full_response": "#Reflection#\n\nThrough the three probing questions, we have observed distinct patterns in the reasoning of Boundary Model 1 and Boundary Model 2:\n\n- **Probing Question 1** ($12 \\div (3 + 3)$): Both models correctly evaluated the expression to 2, applying parentheses first. No error detected.\n\n- **Probing Question 2** ($4 \\times 5 + 2^2$): Both arrived at the correct answer (24), but **Model 1 incorrectly ordered the operations**, treating multiplication before exponentiation. This is a fundamental error in applying PEMDAS \u2014 exponentiation comes *before* multiplication. Despite the correct final answer, the reasoning is flawed.\n\n- **Probing Question 3** (evaluation of a hypothetical test case): Model 2 demonstrated awareness of common errors in order of operations, correctly identifying a potential misstep (e.g., $3 \\div 2 - 1$), and used it to justify the importance of correct sequencing. Model 1 did not provide a valid numerical answer \u2014 instead, it offered a non-integer expression as a \"test case\" without computing a value, indicating a lack of consistent application to integer-based problems.\n\nThis reveals a critical distinction:\n\n- **Boundary Model 2** applies the order of operations correctly, reasons step-by-step with proper precedence, and consistently produces valid integer answers with sound justification.\n\n- **Boundary Model 1** produces correct final answers in simple cases but **fails to correctly apply operation precedence**, suggesting a superficial or heuristic-based approach that may succeed by coincidence.\n\nTherefore, to clearly differentiate them, we need a **final question** that **requires strict adherence to order of operations**, where:\n\n- One model (Model 2) will compute correctly due to accurate reasoning.\n- The other (Model 1) will either misapply operations or fail to follow correct precedence, leading to an incorrect answer \u2014 even if it appears plausible.\n\n#Final Question#\n\nWhat is the value of $ 3 + 4 \\times 2^2 - 1 $?", "question": "\n\nWhat is the value of $ 3 + 4 \\times 2^2 - 1 $?", "boundary_a_answer": "To solve this, follow the order of operations (PEMDAS):\n\n1. Calculate the exponent: $2^2 = 4$\n2. Multiply 4 by the result: $4 \\times 4 = 16$\n3. Add 3 to the result: $3 + 16 = 19$\n4. Subtract 1 from the result: $19 - 1 = 18$\n\nThe final solution is $\\boxed{18}$.", "boundary_b_answer": "To solve this expression, we need to follow the order of operations (PEMDAS/BODMAS):\n\n1) First, evaluate any expressions inside parentheses or brackets.\n   There are no such expressions here.\n\n2) Next, calculate exponents and roots.\n   In our case, there's a power operation: $2^2 = 4$.\n\n3) Then, multiply and divide from left to right.\n   Multiplication comes before division:\n   $4 \\times 2 = 8$\n\n4) Finally, add and subtract from left to right.\n   Addition comes before subtraction:\n   $3 + 8 = 11$\n   \nTherefore, the value of $ 3 + 4 \\times 2^2 - 1 $ is $\\boxed{11}$.", "is_final": true}], "boundary_a_model": "../../models/llama/Llama-3.2-1B-Instruct", "boundary_b_model": "../../models/qwen2.5/Qwen2.5-1.5B-Instruct", "reward": 1.0, "extracted_a": "18", "extracted_b": "11", "extracted_key": "18", "answer_key_response": "I need to evaluate this expression following the order of operations (PEMDAS/BODMAS).\n\nThe expression is: $3 + 4 \\times 2^2 - 1$\n\n**Step 1: Exponents**\nCalculate $2^2 = 4$\n\nThe expression becomes: $3 + 4 \\times 4 - 1$\n\n**Step 2: Multiplication**\nCalculate $4 \\times 4 = 16$\n\nThe expression becomes: $3 + 16 - 1$\n\n**Step 3: Addition and Subtraction (left to right)**\n$3 + 16 = 19$\n$19 - 1 = 18$\n\n$$\\boxed{18}$$", "max_turns": 4}, {"turns": [{"turn_number": 1, "full_response": "What is the value of $ 17 + 23 \\times 4 $?", "question": "What is the value of $ 17 + 23 \\times 4 $?", "boundary_a_answer": "We are asked to find the value of $17 + 23 \\times 4$.\nFirst, we evaluate the expression $23 \\times 4$.\n$23 \\times 4 = 23 \\times 2 \\times 2 = 46 \\times 2 = 92$.\nNow, we substitute this value back into the expression $17 + 23 \\times 4$:\n$17 + 92 = 17 + 92 = 109$.\nThus, $17 + 23 \\times 4 = 109$.\n\nFinal Answer: The final answer is $\\boxed{109}$", "boundary_b_answer": "To solve this, we use the order of operations (PEMDAS/BODMAS), which stands for Parentheses/Brackets, Exponents/Orders, Multiplication and Division (from left to right), Addition and Subtraction (from left to right). In our case, we first perform multiplication:\n\n$ 17 + 23 \\times 4 = 17 + 92 $\n\nThen we add these two numbers together:\n\n$ 17 + 92 = 109 $\n\nTherefore, the answer is 109.", "is_final": false}, {"turn_number": 2, "full_response": "#Reflection#  \nBoth Boundary Model 1 and Boundary Model 2 correctly applied the order of operations (multiplication before addition) to solve the expression $17 + 23 \\times 4$, arriving at the correct answer of 109. Model 1 demonstrated a clear, step-by-step breakdown with a minor algebraic simplification (breaking $23 \\times 4$ into $23 \\times 2 \\times 2$) that is valid but not necessary. Model 2 provided a more standard and concise explanation using PEMDAS, showing strong foundational understanding. Both models exhibit solid grasp of arithmetic order of operations, suggesting they are at a comparable skill level in basic algebraic evaluation.\n\nTo further differentiate their abilities, the next question should introduce a slightly more complex structure\u2014such as nested operations or a requirement for integer division or modular arithmetic\u2014where one model might apply rules correctly and the other miss a subtle detail (e.g., misapplying order of operations or failing to reduce fractions properly).\n\n#Question 2#  \nWhat is the value of $ 8 \\div 2 \\times (3 + 1) $?", "question": "  \nWhat is the value of $ 8 \\div 2 \\times (3 + 1) $?", "boundary_a_answer": "We are asked to evaluate the expression $8 \\div 2 \\times (3 + 1)$.\nFirst, we perform the division:\n$8 \\div 2 = 4$.\nNext, we perform the addition:\n$3 + 1 = 4$.\nNow, we substitute these values into the expression:\n$8 \\div 2 \\times (3 + 1) = 4 \\times 4$.\nFinally, we multiply:\n$4 \\times 4 = 16$.\nTherefore, the value of $8 \\div 2 \\times (3 + 1)$ is 16.\n\nFinal Answer: The final answer is $\\boxed{16}$", "boundary_b_answer": "The expression \\( 8 \\div 2 \\times (3 + 1) \\) follows the order of operations, often remembered by the acronym PEMDAS (Parentheses, Exponents, Multiplication and Division from left to right, Addition and Subtraction from left to right).\n\nFirst, we solve the operation inside the parentheses:\n\\[ 3 + 1 = 4 \\]\n\nNext, we perform the division and multiplication from left to right:\n\\[ 8 \\div 2 = 4 \\]\nThen,\n\\[ 4 \\times 4 = 16 \\]\n\nSo, the value of the expression is \\( 16 \\). Therefore, the answer is $\\boxed{16}$.", "is_final": false}, {"turn_number": 3, "full_response": "#Reflection#  \nBoth Boundary Model 1 and Boundary Model 2 correctly evaluated the expression $8 \\div 2 \\times (3 + 1)$, following the proper order of operations: first the parentheses, then left-to-right execution of division and multiplication. Model 1 correctly breaks down the steps in a sequential manner, performing the division and addition separately before multiplying. Model 2 provides a more structured explanation grounded in PEMDAS, clearly identifying the order of operations and justifying each step with reference to standard rules. Both models demonstrate a solid understanding of arithmetic precedence and execution order.  \n\nHowever, the distinction remains subtle\u2014both are consistent and accurate. To create a meaningful differentiation, the next question must introduce a scenario where one model may misapply a rule (e.g., incorrectly treating multiplication and division as commutative or failing to respect left-to-right order), while the other correctly handles the nuances.  \n\nWe now need a question where the correct answer hinges on strict adherence to order of operations\u2014specifically, left-to-right application of multiplication and division *after* parentheses\u2014but where a common error (such as treating $a \\div b \\times c$ as $a \\div (b \\times c)$) might be made.  \n\n#Question 3#  \nWhat is the value of $ 6 \\div 3 \\times 2 + 4 $?", "question": "  \nWhat is the value of $ 6 \\div 3 \\times 2 + 4 $?", "boundary_a_answer": "Let's evaluate the expression step by step:\n$6 \\div 3 \\times 2 + 4$\nFirst, we divide 6 by 3:\n$6 \\div 3 = 2$\nNow, we multiply the result by 2:\n$2 \\times 2 = 4$\nFinally, we add 4:\n$4 + 4 = 8$\nSo, the value of the expression is 8.\n\nFinal Answer: The final answer is $\\boxed{8}$", "boundary_b_answer": "To solve this expression, we follow the order of operations (PEMDAS/BODMAS), which means we perform multiplication and division from left to right before addition and subtraction.\n$ 6 \\div 3 \\times 2 + 4 = 2 \\times 2 + 4 = 4 + 4 = \\boxed{8} $.", "is_final": false}, {"turn_number": 4, "full_response": "#Reflection#  \n\nAcross the three probing questions, both boundary models demonstrated a strong foundational understanding of order of operations (PEMDAS/BODMAS), correctly applying parentheses, multiplication/division, and addition/subtraction.  \n\n- **Boundary Model 1** consistently breaks down expressions step-by-step in a clear, sequential manner. It correctly applies left-to-right evaluation for multiplication and division and handles parentheses properly. Its reasoning is methodical and avoids common errors.  \n- **Boundary Model 2** provides a well-structured, rule-based justification using PEMDAS and correctly applies operations in the correct sequence. It is precise and accurate in all cases.  \n\nHowever, while both models answered correctly on all probing questions, the current setup does not yet allow for a *distinguishable* failure\u2014one where one model makes a mathematically incorrect error and the other does not. To achieve the goal of the assessment (to identify a final question where **one model answers correctly and the other does not**), we must design a question where **a common mistake** (e.g., misapplying left-to-right order or incorrectly grouping operations) is *prone to be made* by one model, while the other recognizes the correct precedence.\n\nA key error that often occurs in novice or misaligned reasoning is treating $ a \\div b \\times c $ as $ a \\div (b \\times c) $\u2014a misunderstanding of left-to-right evaluation in multiplicative operations.  \n\nWe now design a final question where:  \n- The correct answer requires **strict left-to-right evaluation** of multiplication and division (before addition),  \n- One model (e.g., Model 2) correctly applies the rules,  \n- The other (e.g., Model 1) may make a subtle but critical error due to a misinterpretation of order\u2014perhaps incorrectly grouping or reducing prematurely.  \n\nBut based on the responses, **both models correctly answered** the final probing question. This means we must revise the final question to *truly* expose a difference in reasoning.\n\nLet\u2019s now create a final question where **one model incorrectly applies the order of operations**, possibly due to a flawed assumption or mental shortcut.\n\n#Final Question#  \nWhat is the value of $ 10 - 3 \\times 2 + 4 \\div 2 $?  \n\n**Correct Answer:**  \nWe follow order of operations:  \n- Multiplication and division from left to right:  \n  $3 \\times 2 = 6$  \n  $4 \\", "question": "  \nWhat is the value of $ 10 - 3 \\times 2 + 4 \\div 2 $?  \n\n**Correct Answer:**  \nWe follow order of operations:  \n- Multiplication and division from left to right:  \n  $3 \\times 2 = 6$  \n  $4 \\", "boundary_a_answer": "We follow order of operations:\n- Multiplication and division from left to right:\n  $10 - 3 \\times 2 + 4 \\div 2$\n  $10 - (3 \\times 2) + (4 \\div 2)$\n  $10 - 6 + 2$\n  $10 - 6 + 2$\n  $4 + 2$\n  $6$\nSo the value of $ 10 - 3 \\times 2 + 4 \\div 2 $ is 6.\n\nFinal Answer: The final answer is $\\boxed{6}$", "boundary_b_answer": "", "is_final": true}], "boundary_a_model": "../../models/gemma/gemma-3-1b-it", "boundary_b_model": "../../models/qwen2.5/Qwen2.5-1.5B-Instruct", "reward": 1.0, "extracted_a": "6", "extracted_b": "N/A", "extracted_key": "6", "answer_key_response": "I need to evaluate this expression following the order of operations (PEMDAS/BODMAS).\n\nThe expression is: $10 - 3 \\times 2 + 4 \\div 2$\n\n**Step 1: Perform multiplication and division from left to right**\n\nFirst, $3 \\times 2 = 6$\n\nThe expression becomes: $10 - 6 + 4 \\div 2$\n\nNext, $4 \\div 2 = 2$\n\nThe expression becomes: $10 - 6 + 2$\n\n**Step 2: Perform addition and subtraction from left to right**\n\n$10 - 6 = 4$\n\n$4 + 2 = 6$\n\n$$\\boxed{6}$$", "max_turns": 4}]}};
+        const metadata = {"model_name": "Qwen3-4B-Instruct-2507", "run_id": "20251208_150633_Qwen3-4B-Instruct-2507_jf9xqsgl", "wandb_run_id": "jf9xqsgl", "wandb_project": "ask_small", "total_rollouts": 128, "last_updated": "2025-12-08 15:12:24"};
+
+        // Display metadata
+        function displayMetadata() {
+            const container = document.getElementById('metadata-display');
+            const items = [
+                { label: 'Model', value: metadata.model_name },
+                { label: 'W&B Run ID', value: metadata.wandb_run_id },
+                { label: 'W&B Project', value: metadata.wandb_project },
+                { label: 'Total Rollouts', value: metadata.total_rollouts.toLocaleString() },
+                { label: 'Last Updated', value: metadata.last_updated },
+            ];
+
+            container.innerHTML = items.map(item => `
+                <div class="metadata-item">
+                    <div class="metadata-label">${item.label}</div>
+                    <div class="metadata-value">${item.value}</div>
+                </div>
+            `).join('');
+        }
+        displayMetadata();
+
+        // Create the Plotly chart
+        const trace1 = {
+            x: rewardData.rollouts,
+            y: rewardData.rewards,
+            mode: 'markers',
+            type: 'scatter',
+            name: 'Avg Reward (per interval)',
+            marker: {
+                size: 10,
+                color: '#2196f3',
+                opacity: 0.7
+            },
+            hovertemplate: 'Rollout: %{x}<br>Avg Reward: %{y:.3f}<extra></extra>'
+        };
+
+        const trace2 = {
+            x: rewardData.rollouts,
+            y: rewardData.avg_rewards,
+            mode: 'lines',
+            type: 'scatter',
+            name: 'Running Average',
+            line: {
+                color: '#f44336',
+                width: 2
+            },
+            hovertemplate: 'Rollout: %{x}<br>Running Avg: %{y:.3f}<extra></extra>'
+        };
+
+        const layout = {
+            title: 'Reward over Training',
+            xaxis: {
+                title: 'Total Rollouts',
+                gridcolor: '#eee'
+            },
+            yaxis: {
+                title: 'Reward',
+                range: [0, 1],
+                gridcolor: '#eee'
+            },
+            hovermode: 'closest',
+            plot_bgcolor: 'white',
+            paper_bgcolor: 'white',
+            legend: {
+                x: 0.02,
+                y: 0.98
+            }
+        };
+
+        const config = {
+            responsive: true,
+            displayModeBar: true,
+            modeBarButtonsToRemove: ['lasso2d', 'select2d']
+        };
+
+        Plotly.newPlot('reward-chart', [trace1, trace2], layout, config);
+
+        // State for current selection
+        let currentRollout = null;
+        let currentExampleIndex = 0;
+
+        // Handle click events on the chart
+        document.getElementById('reward-chart').on('plotly_click', function(data) {
+            const point = data.points[0];
+            currentRollout = point.x;
+            currentExampleIndex = 0;
+            displayRollout();
+        });
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function generateDialSVG(outcome) {
+            // outcome: 'calibrated', 'too-hard', or 'too-easy'
+            let rotation = 0;
+            if (outcome === 'too-hard') rotation = 60;
+            if (outcome === 'too-easy') rotation = -60;
+
+            return `
+                <svg width="180" height="110" viewBox="0 0 180 110">
+                    <!-- Background arc -->
+                    <path d="M 18 90 A 72 72 0 0 1 162 90"
+                          fill="none"
+                          stroke="#e0e0e0"
+                          stroke-width="20"/>
+
+                    <!-- Too Easy zone (left) -->
+                    <path d="M 18 90 A 72 72 0 0 1 54 28.3"
+                          fill="none"
+                          stroke="#ef5350"
+                          stroke-width="18"
+                          stroke-linecap="butt"/>
+
+                    <!-- Calibrated zone (center) -->
+                    <path d="M 54 28.3 A 72 72 0 0 1 126 28.3"
+                          fill="none"
+                          stroke="#66bb6a"
+                          stroke-width="18"
+                          stroke-linecap="butt"/>
+
+                    <!-- Too Hard zone (right) -->
+                    <path d="M 126 28.3 A 72 72 0 0 1 162 90"
+                          fill="none"
+                          stroke="#ef5350"
+                          stroke-width="18"
+                          stroke-linecap="butt"/>
+
+                    <!-- Needle -->
+                    <g transform="rotate(${rotation}, 90, 90)">
+                        <polygon points="90,24 86,90 94,90" fill="#333"/>
+                        <circle cx="90" cy="90" r="9" fill="#333"/>
+                    </g>
+
+                    <!-- Labels -->
+                    <text x="10" y="105" font-size="10" fill="#666" font-weight="500">Easy</text>
+                    <text x="145" y="105" font-size="10" fill="#666" font-weight="500">Hard</text>
+                </svg>`;
+        }
+
+        function getDialOutcome(aCorrect, bCorrect) {
+            if (aCorrect && bCorrect) return 'too-easy';
+            if (!aCorrect && !bCorrect) return 'too-hard';
+            return 'calibrated';
+        }
+
+        function getDialLabel(outcome) {
+            if (outcome === 'too-easy') return 'Too Easy';
+            if (outcome === 'too-hard') return 'Too Hard';
+            return 'Calibrated';
+        }
+
+        function getDialExplanation(outcome, aModel, bModel, aCorrect, bCorrect) {
+            if (outcome === 'calibrated') {
+                const correctModel = aCorrect ? aModel : bModel;
+                const wrongModel = aCorrect ? bModel : aModel;
+                return `<strong>Success!</strong> The questioner generated a question that differentiates the boundary models. <strong>${escapeHtml(correctModel)}</strong> answered correctly while <strong>${escapeHtml(wrongModel)}</strong> got it wrong.`;
+            } else if (outcome === 'too-easy') {
+                return `<strong>Too Easy.</strong> Both boundary models answered correctly. The questioner needs to generate harder questions to find the ability gap.`;
+            } else {
+                return `<strong>Too Hard.</strong> Both boundary models answered incorrectly. The questioner needs to generate easier questions that at least one model can solve.`;
+            }
+        }
+
+        function formatTeacherResponse(fullResponse, parsedQuestion) {
+            // Show full response with parsed question highlighted
+            if (!fullResponse) return escapeHtml(parsedQuestion || '');
+            if (!parsedQuestion || fullResponse === parsedQuestion) return escapeHtml(fullResponse);
+
+            const escapedFull = escapeHtml(fullResponse);
+            const escapedParsed = escapeHtml(parsedQuestion);
+
+            // Highlight the parsed question within the full response
+            if (escapedFull.includes(escapedParsed)) {
+                return escapedFull.replace(
+                    escapedParsed,
+                    `<strong style="background: #fff3cd; padding: 2px 4px; border-radius: 3px; border: 1px solid #ffc107;">${escapedParsed}</strong>`
+                );
+            }
+            // Fallback: show both separately if no match found
+            return escapedFull + '<br><br><strong style="background: #fff3cd; padding: 2px 4px; border-radius: 3px;">Parsed question:</strong> ' + escapedParsed;
+        }
+
+        function displayRollout() {
+            if (!currentRollout || !rewardData.examples[currentRollout]) {
+                document.getElementById('rollout-display').innerHTML = `
+                    <div class="no-selection">
+                        <div class="no-selection-icon">📊</div>
+                        <div>No examples available for rollout ${currentRollout}</div>
+                    </div>
+                `;
+                return;
+            }
+
+            const examples = rewardData.examples[currentRollout];
+            const example = examples[currentExampleIndex];
+            const total = examples.length;
+            const turns = example.turns || [];
+            const maxTurns = example.max_turns || turns.length;
+
+            // Find the final turn
+            const finalTurn = turns.find(t => t.is_final) || turns[turns.length - 1];
+            const probingTurns = turns.filter(t => !t.is_final);
+
+            // Determine correctness
+            const aCorrect = example.extracted_a === example.extracted_key;
+            const bCorrect = example.extracted_b === example.extracted_key;
+            const rewardClass = example.reward === 1.0 ? 'success' : 'failure';
+            const rewardText = example.reward === 1.0
+                ? '1.0 - Exactly one boundary model correct (differentiation successful)'
+                : '0.0 - Both correct or both wrong (no differentiation)';
+
+            // Build final evaluation HTML
+            let finalEvalHtml = `
+                <div class="final-evaluation">
+                    <h3>Final Evaluation (Turn ${finalTurn ? finalTurn.turn_number : maxTurns} of ${maxTurns})</h3>
+
+                    <div class="field" style="margin-bottom: 15px;">
+                        <div class="field-label">Final Differentiating Question <span style="font-size: 10px; color: #666;">(highlighted = sent to boundary models)</span></div>
+                        <div class="field-value">${finalTurn ? formatTeacherResponse(finalTurn.full_response, finalTurn.question) : 'N/A'}</div>
+                    </div>
+
+                    <div class="field" style="margin-bottom: 15px;">
+                        <div class="field-label">Boundary Model Responses</div>
+                        <div class="student-responses">
+                            <div class="student-box">
+                                <div class="student-name">Boundary A: ${escapeHtml(example.boundary_a_model)}</div>
+                                <div class="student-answer">${escapeHtml(finalTurn ? finalTurn.boundary_a_answer : 'N/A')}</div>
+                            </div>
+                            <div class="student-box">
+                                <div class="student-name">Boundary B: ${escapeHtml(example.boundary_b_model)}</div>
+                                <div class="student-answer">${escapeHtml(finalTurn ? finalTurn.boundary_b_answer : 'N/A')}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="extracted-answers">
+                        <div class="extracted-box">
+                            <div class="extracted-label">Answer Key (Claude)</div>
+                            <div class="extracted-value key">${escapeHtml(example.extracted_key)}</div>
+                        </div>
+                        <div class="extracted-box">
+                            <div class="extracted-label">Boundary A (${escapeHtml(example.boundary_a_model)})</div>
+                            <div class="extracted-value ${aCorrect ? 'correct' : 'incorrect'}">${escapeHtml(example.extracted_a)} ${aCorrect ? '✓' : '✗'}</div>
+                        </div>
+                        <div class="extracted-box">
+                            <div class="extracted-label">Boundary B (${escapeHtml(example.boundary_b_model)})</div>
+                            <div class="extracted-value ${bCorrect ? 'correct' : 'incorrect'}">${escapeHtml(example.extracted_b)} ${bCorrect ? '✓' : '✗'}</div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <strong>Reward:</strong>
+                        <span class="reward-badge ${rewardClass}">${rewardText}</span>
+                    </div>
+
+                    <div class="answer-key-section">
+                        <div class="answer-key-label">Full Answer Key Response</div>
+                        <div class="answer-key-value">${escapeHtml(example.answer_key_response)}</div>
+                    </div>
+                </div>
+            `;
+
+            // Build conversation turns HTML
+            let turnsHtml = '';
+            for (const turn of turns) {
+                const isProbing = !turn.is_final;
+                const headerClass = isProbing ? 'probing' : 'final';
+                const turnLabel = isProbing
+                    ? `Probing Question ${turn.turn_number}`
+                    : 'Final Differentiating Question';
+
+                turnsHtml += `
+                    <div class="turn">
+                        <div class="turn-header ${headerClass}">
+                            <span>${turnLabel}</span>
+                            <span class="turn-number">Turn ${turn.turn_number} of ${maxTurns}</span>
+                        </div>
+                        <div class="turn-content">
+                            <div class="field">
+                                <div class="field-label">Questioner Response <span style="font-size: 10px; color: #666;">(highlighted = sent to boundary models)</span></div>
+                                <div class="field-value">${formatTeacherResponse(turn.full_response, turn.question)}</div>
+                            </div>
+                            <div class="field">
+                                <div class="field-label">Boundary Model Responses</div>
+                                <div class="student-responses">
+                                    <div class="student-box">
+                                        <div class="student-name">Boundary A: ${escapeHtml(example.boundary_a_model)}</div>
+                                        <div class="student-answer">${escapeHtml(turn.boundary_a_answer)}</div>
+                                    </div>
+                                    <div class="student-box">
+                                        <div class="student-name">Boundary B: ${escapeHtml(example.boundary_b_model)}</div>
+                                        <div class="student-answer">${escapeHtml(turn.boundary_b_answer)}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Generate dial visualization
+            const dialOutcome = getDialOutcome(aCorrect, bCorrect);
+            const dialLabel = getDialLabel(dialOutcome);
+            const dialExplanation = getDialExplanation(dialOutcome, example.boundary_a_model, example.boundary_b_model, aCorrect, bCorrect);
+            const dialLabelClass = dialOutcome === 'calibrated' ? 'calibrated' : (dialOutcome === 'too-easy' ? 'too-easy' : 'too-hard');
+
+            const html = `
+                <div class="rollout-header">
+                    <h2>Rollout Examples at ${currentRollout.toLocaleString()} rollouts</h2>
+                    <div class="rollout-nav">
+                        <button onclick="prevExample()" ${currentExampleIndex === 0 ? 'disabled' : ''}>← Previous</button>
+                        <span class="rollout-count">${currentExampleIndex + 1} / ${total}</span>
+                        <button onclick="nextExample()" ${currentExampleIndex === total - 1 ? 'disabled' : ''}>Next →</button>
+                    </div>
+                </div>
+
+                <div class="meta-info" style="margin-bottom: 15px;">
+                    <div><strong>Boundary Model Pair:</strong> ${escapeHtml(example.boundary_a_model)} & ${escapeHtml(example.boundary_b_model)}</div>
+                </div>
+
+                <div class="dial-section">
+                    <div class="dial-container">
+                        ${generateDialSVG(dialOutcome)}
+                        <div class="dial-label ${dialLabelClass}">${dialLabel}</div>
+                    </div>
+                    <div class="dial-explanation">
+                        ${dialExplanation}
+                    </div>
+                </div>
+
+                ${finalEvalHtml}
+
+                <div class="conversation">
+                    ${turnsHtml}
+                </div>
+            `;
+
+            document.getElementById('rollout-display').innerHTML = html;
+        }
+
+        function prevExample() {
+            if (currentExampleIndex > 0) {
+                currentExampleIndex--;
+                displayRollout();
+            }
+        }
+
+        function nextExample() {
+            const examples = rewardData.examples[currentRollout];
+            if (currentExampleIndex < examples.length - 1) {
+                currentExampleIndex++;
+                displayRollout();
+            }
+        }
+    </script>
+</body>
+</html>

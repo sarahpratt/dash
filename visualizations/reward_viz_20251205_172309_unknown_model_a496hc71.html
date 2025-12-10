@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reward Visualization - Multi-Round Format</title>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 5px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 10px;
+        }
+        .metadata {
+            background: #fff;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+        }
+        .metadata-item {
+            font-size: 13px;
+        }
+        .metadata-label {
+            color: #666;
+            font-size: 11px;
+            text-transform: uppercase;
+        }
+        .metadata-value {
+            font-weight: 600;
+            color: #333;
+            word-break: break-all;
+        }
+        .chart-container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .instructions {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 10px 15px;
+            margin-bottom: 20px;
+            border-radius: 0 4px 4px 0;
+        }
+        .rollout-panel {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .rollout-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        .rollout-header h2 {
+            margin: 0;
+            color: #333;
+        }
+        .rollout-nav {
+            display: flex;
+            gap: 10px;
+        }
+        .rollout-nav button {
+            padding: 8px 16px;
+            border: none;
+            background: #2196f3;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .rollout-nav button:hover {
+            background: #1976d2;
+        }
+        .rollout-nav button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .rollout-count {
+            color: #666;
+            font-size: 14px;
+        }
+
+        /* Multi-turn conversation styles */
+        .conversation {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .turn {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .turn-header {
+            padding: 10px 15px;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .turn-header.probing {
+            background: #fff3e0;
+            color: #e65100;
+        }
+        .turn-header.final {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        .turn-number {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+        .turn-content {
+            padding: 15px;
+        }
+        .field {
+            margin-bottom: 15px;
+        }
+        .field:last-child {
+            margin-bottom: 0;
+        }
+        .field-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+        .field-value {
+            background: #fafafa;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .student-responses {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .student-box {
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            padding: 10px;
+        }
+        .student-name {
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+        .student-answer {
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        /* Final evaluation section */
+        .final-evaluation {
+            background: #f0f4ff;
+            border: 2px solid #2196f3;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .final-evaluation h3 {
+            margin: 0 0 15px 0;
+            color: #1565c0;
+        }
+        .answer-key-section {
+            background: #e3f2fd;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 15px;
+        }
+        .answer-key-label {
+            font-size: 11px;
+            color: #1565c0;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+        .answer-key-value {
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .extracted-answers {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .extracted-box {
+            background: #fafafa;
+            padding: 10px;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .extracted-label {
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 4px;
+        }
+        .extracted-value {
+            font-size: 18px;
+            font-weight: 700;
+            font-family: 'Monaco', 'Menlo', monospace;
+        }
+        .extracted-value.correct {
+            color: #2e7d32;
+        }
+        .extracted-value.incorrect {
+            color: #c62828;
+        }
+        .extracted-value.key {
+            color: #1565c0;
+        }
+
+        .reward-badge {
+            display: inline-block;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .reward-badge.success {
+            background: #c8e6c9;
+            color: #2e7d32;
+        }
+        .reward-badge.failure {
+            background: #ffcdd2;
+            color: #c62828;
+        }
+        .meta-info {
+            display: flex;
+            gap: 20px;
+            font-size: 13px;
+            color: #666;
+        }
+        .no-selection {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+        .no-selection-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+        @media (max-width: 768px) {
+            .student-responses, .extracted-answers {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Training Reward Visualization</h1>
+        <p class="subtitle">Question Generation Environment - Multi-Round Conversation</p>
+
+        <div class="metadata" id="metadata-display"></div>
+
+        <div class="instructions">
+            <strong>How to use:</strong> Click on any point in the chart below to view example rollouts from that time in training. Each rollout shows the full multi-turn conversation between the teacher and students.
+        </div>
+
+        <div class="chart-container">
+            <div id="reward-chart"></div>
+        </div>
+
+        <div class="rollout-panel">
+            <div id="rollout-display">
+                <div class="no-selection">
+                    <div class="no-selection-icon">📊</div>
+                    <div>Click on a point in the chart above to view rollout examples</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Data injected from Python
+        const rewardData = {"rollouts": [100], "rewards": [0.23], "avg_rewards": [0.23], "examples": {"100": [{"turns": [{"turn_number": 1, "question": "What is the sum of the first 10 positive integers?", "student_a_answer": "The sum of the first n positive integers can be calculated using the formula:\n\nSum = (n * (n + 1)) / 2\n\nTo find the sum of the first 10 positive integers, we can plug in n = 10 into the formula:\n\nSum = (10 * (10 + 1)) / 2\nSum = (10 * 11) / 2\nSum = 110 / 2\nSum = 55\n\nTherefore, the sum of the first 10 positive integers is 55.", "student_b_answer": "The sum of the first 10 positive integers can be calculated using the formula for the sum of an arithmetic series, which is \\( S_n = \\frac{n(a_1 + a_n)}{2} \\), where \\( n \\) is the number of terms, \\( a_1 \\) is the first term, and \\( a_n \\) is the last term.\n\nFor the first 10 positive integers:\n- The first term (\\(a_1\\)) is 1.\n- The last term (\\(a_{10}\\)) is 10.\n- The number of terms (\\(n\\)) is 10.\n\nPlugging these values into the formula gives us:\n\n\\[ S_{10} = \\frac{10(1 + 10)}{2} = \\frac{10 \\times 11}{2} = 55 \\]\n\nSo, the sum of the first 10 positive integers is 55. Therefore, the answer is 55.", "is_final": false}, {"turn_number": 2, "question": "What is the 100th term of the arithmetic sequence that starts at 3 and increases by 4 each time?", "student_a_answer": "To find the 100th term of the arithmetic sequence, we can use the formula:\n\nan = a1 + (n - 1)d\n\nwhere an is the nth term, a1 is the first term (3), n is the term number (100), and d is the common difference (4).\n\nan = 3 + (100 - 1)4\nan = 3 + (99)4\nan = 3 + 3966\nan = 3979\n\nTherefore, the 100th term of the arithmetic sequence is 3979.", "student_b_answer": "To find the 100th term of an arithmetic sequence, we use the formula:\n\n\\[ a_n = a_1 + (n - 1)d \\]\n\nwhere:\n- \\( a_n \\) is the nth term,\n- \\( a_1 \\) is the first term,\n- \\( d \\) is the common difference between consecutive terms.\n\nGiven:\n- The first term (\\( a_1 \\)) is 3.\n- The common difference (\\( d \\)) is 4.\n- We need to find the 100th term (\\( n = 100 \\)).\n\nPlugging these values into the formula:\n\n\\[ a_{100} = 3 + (100 - 1) \\times 4 \\]\n\\[ a_{100} = 3 + 99 \\times 4 \\]\n\\[ a_{100} = 3 + 396 \\]\n\\[ a_{100} = 399 \\]\n\nSo, the 100th term of this arithmetic sequence is 399.", "is_final": false}, {"turn_number": 3, "question": "What is the sum of all integers from 1 to 100 inclusive?", "student_a_answer": "The sum of all integers from 1 to 100 inclusive can be calculated using the formula for the sum of an arithmetic series:\n\nSum = (n * (a1 + an)) / 2\n\nwhere n is the number of terms, a1 is the first term, and an is the last term.\n\nIn this case, n = 100 (since there are 100 terms), a1 = 1, and an = 100.\n\nPlugging these values into the formula, we get:\n\nSum = (100 * (1 + 100)) / 2\nSum = (100 * 101) / 2\nSum = 10000 / 2\nSum = 5000\n\nTherefore, the sum of all integers from 1 to 100 inclusive is 5000.", "student_b_answer": "The sum of an arithmetic series can be found using the formula \\( S = \\frac{n}{2}(a_1 + a_n) \\), where \\( n \\) is the number of terms, \\( a_1 \\) is the first term, and \\( a_n \\) is the last term.\n\nFor this problem:\n- The first term (\\( a_1 \\)) is 1.\n- The last term (\\( a_n \\)) is 100.\n- There are 100 terms because we're including both endpoints (1 and 100).\n\nPlugging these values into the formula gives us:\n\n\\[ S = \\frac{100}{2}(1 + 100) = 50 \\times 101 = 5050 \\]\n\nSo, the sum of all integers from 1 to 100 inclusive is **5050**.", "is_final": false}, {"turn_number": 4, "question": "#Final Question#  \nWhat is the sum of the first 20 terms of the arithmetic sequence that starts at 5 and has a common difference of 3?", "student_a_answer": "To find the sum of the first 20 terms of the arithmetic sequence, we can use the formula:\n\nSum = (n/2) * (2a + (n-1)d)\n\nwhere n is the number of terms, a is the first term, and d is the common difference.\n\nGiven values:\nn = 20\na = 5\nd = 3\n\nSubstituting the values into the formula:\n\nSum = (20/2) * (2(5) + (20-1)3)\nSum = 10 * (10 + 19*3)\nSum = 10 * (10 + 57)\nSum = 10 * 67\nSum = 670\n\nTherefore, the sum of the first 20 terms of the arithmetic sequence is 670.", "student_b_answer": "The formula for the nth term of an arithmetic sequence is $a_n = a_1 + (n-1)d$, where $a_1$ is the first term, d is the common difference, and n is the term number.\nUsing this formula, we can find the 20th term: $a_{20} = 5 + (20-1)(3) = 62$.\nTo find the sum of the first 20 terms, we use the formula $S_n = \\frac{n}{2}(a_1 + a_n)$.\nPlugging in our values, we get $S_{20} = \\frac{20}{2}(5 + 62) = \\boxed{670}$.\nTherefore, the sum of the first 20 terms of the arithmetic sequence is 670.", "is_final": true}], "student_a_model": "../../models/llama/Llama-3.2-1B-Instruct", "student_b_model": "../../models/qwen2.5/Qwen2.5-1.5B-Instruct", "reward": 0.0, "extracted_a": "670", "extracted_b": "670", "extracted_key": "670", "answer_key_response": "I need to find the sum of the first 20 terms of an arithmetic sequence with first term a\u2081 = 5 and common difference d = 3.\n\n## Formula for Sum of Arithmetic Sequence\n\nThe sum of the first n terms of an arithmetic sequence is:\n$$S_n = \\frac{n}{2}(2a_1 + (n-1)d)$$\n\nOr equivalently:\n$$S_n = \\frac{n}{2}(a_1 + a_n)$$\n\n## Calculating the Sum\n\nUsing the first formula with n = 20, a\u2081 = 5, and d = 3:\n\n$$S_{20} = \\frac{20}{2}(2(5) + (20-1)(3))$$\n\n$$S_{20} = 10(10 + 19 \\cdot 3)$$\n\n$$S_{20} = 10(10 + 57)$$\n\n$$S_{20} = 10(67)$$\n\n$$S_{20} = 670$$\n\n## Verification\n\nThe 20th term is: a\u2082\u2080 = 5 + (19)(3) = 5 + 57 = 62\n\nUsing the alternate formula: S\u2082\u2080 = (20/2)(5 + 62) = 10(67) = 670 \u2713\n\n$$\\boxed{670}$$", "max_turns": 4}, {"turns": [{"turn_number": 1, "question": "What is the value of $ x $ in the equation $ 3x + 7 = 28 $?", "student_a_answer": "To solve for \\(x\\), we need to isolate \\(x\\) on one side of the equation. \n\nFirst, subtract 7 from both sides of the equation:\n\n\\(3x + 7 - 7 = 28 - 7\\)\n\nThis simplifies to:\n\n\\(3x = 21\\)\n\nNext, divide both sides of the equation by 3 to solve for \\(x\\):\n\n\\(\\frac{3x}{3} = \\frac{21}{3}\\)\n\nThis simplifies to:\n\n\\(x = 7\\)\n\nTherefore, the value of \\(x\\) is 7.", "student_b_answer": "We are given the equation $3x + 7 = 28$.\nTo solve for $x$, we first subtract 7 from both sides of the equation:\n$3x + 7 - 7 = 28 - 7$\n$3x = 21$\nNow, we divide both sides by 3:\n$\\frac{3x}{3} = \\frac{21}{3}$\n$x = 7$\nThus, the value of $x$ is 7.\n\nFinal Answer: The final answer is $\\boxed{7}$", "is_final": false}, {"turn_number": 2, "question": "What is the value of $ y $ in the equation $ 5y - 4 = 31 $?", "student_a_answer": "To find the value of \\( y \\), we need to isolate \\( y \\) on one side of the equation. \n\nFirst, add 4 to both sides of the equation:\n\\[ 5y - 4 + 4 = 31 + 4 \\]\n\\[ 5y = 35 \\]\n\nNext, divide both sides by 5 to isolate \\( y \\):\n\\[ \\frac{5y}{5} = \\frac{35}{5} \\]\n\\[ y = 7 \\]\n\nSo, the value of \\( y \\) is 7.", "student_b_answer": "Let the given equation be\n$$5y - 4 = 31$$\nWe want to solve for $y$.\nAdd 4 to both sides of the equation:\n$$5y - 4 + 4 = 31 + 4$$\n$$5y = 35$$\nDivide both sides by 5:\n$$\\frac{5y}{5} = \\frac{35}{5}$$\n$$y = 7$$\nThus, the value of $y$ is 7.\n\nFinal Answer: The final answer is $\\boxed{7}$", "is_final": false}, {"turn_number": 3, "question": "What is the value of $ n $ in the equation $ 2n + 3n - 10 = 40 $?", "student_a_answer": "To find the value of $n$, we need to solve the equation.\n\nFirst, let's combine like terms:\n$2n + 3n - 10 = 40$\n\nCombine the $n$ terms:\n$5n - 10 = 40$\n\nAdd 10 to both sides:\n$5n = 50$\n\nDivide both sides by 5:\n$n = 10$\n\nSo, the value of $n$ is 10.", "student_b_answer": "Let's solve the equation $2n + 3n - 10 = 40$.\nFirst, combine the terms with $n$:\n$2n + 3n = 5n$.\nSo the equation becomes:\n$5n - 10 = 40$.\nAdd 10 to both sides of the equation:\n$5n - 10 + 10 = 40 + 10$\n$5n = 50$\nDivide both sides by 5:\n$\\frac{5n}{5} = \\frac{50}{5}$\n$n = 10$\n\nFinal Answer: The final answer is $\\boxed{10}$", "is_final": false}, {"turn_number": 4, "question": "#Final Question#  \nWhat is the value of $ x $ in the equation $ \\frac{3x + 2}{4} = 5 $?", "student_a_answer": "To find the value of x, we need to isolate x on one side of the equation. \n\nFirst, we multiply both sides by 4 to eliminate the fraction:\n3x + 2 = 20\n\nNext, we subtract 2 from both sides:\n3x = 18\n\nNow, we divide both sides by 3:\nx = 6\n\nSo, the value of x is 6.", "student_b_answer": "To find the value of $x$ in the equation $\\frac{3x + 2}{4} = 5$, we need to solve for $x$.\nFirst, we multiply both sides of the equation by 4:\n$$ \\frac{3x + 2}{4} \\times 4 = 5 \\times 4 $$\n$$ 3x + 2 = 20 $$\nNow, we subtract 2 from both sides of the equation:\n$$ 3x + 2 - 2 = 20 - 2 $$\n$$ 3x = 18 $$\nFinally, we divide both sides by 3:\n$$ \\frac{3x}{3} = \\frac{18}{3} $$\n$$ x = 6 $$\nThus, the value of $x$ is 6.\n\nFinal Answer: The final answer is $\\boxed{6}$", "is_final": true}], "student_a_model": "../../models/llama/Llama-3.2-1B-Instruct", "student_b_model": "../../models/gemma/gemma-3-1b-it", "reward": 0.0, "extracted_a": "6", "extracted_b": "6", "extracted_key": "6", "answer_key_response": "I need to solve the equation $\\frac{3x + 2}{4} = 5$ for $x$.\n\n**Step 1: Eliminate the denominator**\n\nMultiply both sides by 4:\n$$3x + 2 = 20$$\n\n**Step 2: Isolate the term with x**\n\nSubtract 2 from both sides:\n$$3x = 18$$\n\n**Step 3: Solve for x**\n\nDivide both sides by 3:\n$$x = 6$$\n\n**Verification:** $\\frac{3(6) + 2}{4} = \\frac{18 + 2}{4} = \\frac{20}{4} = 5$ \u2713\n\n$$\\boxed{6}$$", "max_turns": 4}, {"turns": [{"turn_number": 1, "question": "What is the greatest common divisor of 48 and 72?", "student_a_answer": "To find the greatest common divisor (GCD) of 48 and 72, we can use the Euclidean algorithm.\n\n1. Divide 72 by 48: 72 \u00f7 48 = 1 remainder 24\n2. Divide 48 by 24: 48 \u00f7 24 = 2 remainder 0\n\nSince the remainder is 0, the GCD is 24.", "student_b_answer": "To find the greatest common divisor (GCD) of 48 and 72, we can use the Euclidean algorithm or prime factorization method.\n\nUsing the prime factorization method:\n\n1. Find the prime factors of each number:\n   - The prime factors of 48 are: \\(2^4 \\times 3\\)\n   - The prime factors of 72 are: \\(2^3 \\times 3^2\\)\n\n2. Identify the common prime factors and their lowest powers:\n   - Common primes: 2 and 3\n   - Lowest power of 2: \\(2^3 = 8\\)\n   - Lowest power of 3: \\(3^1 = 3\\)\n\n3. Multiply these together to get the GCD:\n   \\[\n   \\text{GCD} = 2^3 \\times 3 = 8 \\times 3 = 24\n   \\]\n\nTherefore, the greatest common divisor of 48 and 72 is \\(\\boxed{24}\\).", "is_final": false}, {"turn_number": 2, "question": "What is the least common multiple of 15 and 20?", "student_a_answer": "To find the least common multiple (LCM) of 15 and 20, we need to find the smallest number that both 15 and 20 divide into evenly.\n\nFirst, let's list the multiples of each number:\n\nMultiples of 15: 15, 30, 45, 60, 75, 90, 105, 120, ...\nMultiples of 20: 20, 40, 60, 80, 100, 120, ...\n\nThe first number that appears in both lists is 60, so the least common multiple of 15 and 20 is 60.", "student_b_answer": "To find the least common multiple (LCM) of 15 and 20, we can use the prime factorization method.\n\nFirst, let's find the prime factors of each number:\n- The prime factorization of 15 is \\(3 \\times 5\\).\n- The prime factorization of 20 is \\(2^2 \\times 5\\).\n\nThe LCM is found by taking the highest power of each prime that appears in these factorizations. So, for 15 (\\(3^1\\) and \\(5^1\\)), we take \\(3^1\\) and \\(5^1\\). For 20 (\\(2^2\\) and \\(5^1\\)), we take \\(2^2\\) and \\(5^1\\).\n\nMultiplying these together gives us:\n\\[2^2 \\times 3^1 \\times 5^1 = 4 \\times 3 \\times 5 = 60.\\]\n\nTherefore, the least common multiple of 15 and 20 is 60.", "is_final": false}, {"turn_number": 3, "question": "What is the value of \\( n \\) such that \\( \\sqrt{n} + \\sqrt{n+1} = 4 \\)?", "student_a_answer": "To solve this problem, we can start by isolating one of the square root terms.\n\n\\( \\sqrt{n} + \\sqrt{n+1} = 4 \\)\n\nSubtract \\( \\sqrt{n} \\) from both sides:\n\n\\( \\sqrt{n+1} = 4 - \\sqrt{n} \\)\n\nNow, square both sides to eliminate the square root:\n\n\\( (\\sqrt{n+1})^2 = (4 - \\sqrt{n})^2 \\)\n\nThis simplifies to:\n\n\\( n + 1 = 16 - 8\\sqrt{n} + n \\)\n\nSimplify further by subtracting \\( n \\) from both sides:\n\n\\( 1 = 16 - 8\\sqrt{n} \\)\n\nSubtract 16 from both sides:\n\n\\( -15 = -8\\sqrt{n} \\)\n\nDivide both sides by -8:\n\n\\( \\frac{-15}{-8} = \\sqrt{n} \\)\n\nSimplify:\n\n\\( \\frac{15}{8} = \\sqrt{n} \\)\n\nNow, square both sides to find \\( n \\):\n\n\\( \\left(\\frac{15}{8}\\right)^2 = n \\)\n\n\\( \\frac{225}{64} = n \\)\n\nSo, the value of \\( n \\) is \\( \\frac{225}{64} \\).", "student_b_answer": "To find the value of \\( n \\) such that \\( \\sqrt{n} + \\sqrt{n+1} = 4 \\), we can start by isolating one of the square roots and then squaring both sides to eliminate the square root.\n\nLet's isolate \\( \\sqrt{n+1} \\):\n\n\\[ \\sqrt{n+1} = 4 - \\sqrt{n} \\]\n\nNow, square both sides:\n\n\\[ (\\sqrt{n+1})^2 = (4 - \\sqrt{n})^2 \\]\n\\[ n + 1 = 16 - 8\\sqrt{n} + n \\]\n\nSubtract \\( n \\) from both sides:\n\n\\[ 1 = 16 - 8\\sqrt{n} \\]\n\nRearrange to solve for \\( \\sqrt{n} \\):\n\n\\[ 8\\sqrt{n} = 15 \\]\n\\[ \\sqrt{n} = \\frac{15}{8} \\]\n\nSquare both sides again to get rid of the remaining square root:\n\n\\[ (\\sqrt{n})^2 = \\left(\\frac{15}{8}\\right)^2 \\]\n\\[ n = \\frac{225}{64} \\]\n\nSo, the value of \\( n \\) is \\( \\frac{225}{64} \\).", "is_final": false}, {"turn_number": 4, "question": "#Final Question#  \nWhat is the sum of all positive integers \\( n \\) such that \\( \\sqrt{n} + \\sqrt{n+1} < 5 \\) and \\( n \\) is a perfect square?", "student_a_answer": "To solve this problem, we need to find all positive integers \\( n \\) such that \\( \\sqrt{n} + \\sqrt{n+1} < 5 \\) and \\( n \\) is a perfect square. \n\nFirst, we can rewrite the given inequality as \\( (\\sqrt{n} + \\sqrt{n+1})^2 < 25 \\). \n\nExpanding the left-hand side of the inequality, we get \\( n + 2\\sqrt{n(n+1)} + n + 1 < 25 \\). \n\nCombining like terms, we have \\( 2n + 2\\sqrt{n(n+1)} < 24 \\). \n\nDividing both sides by 2, we get \\( n + \\sqrt{n(n+1)} < 12 \\).\n\nWe can continue solving this inequality by subtracting 12 from both sides. We have \\( n + \\sqrt{n(n+1)} < 12 \\) and \\( n + \\sqrt{n(n+1)} > 0 \\).\n\nNow we can subtract the two equations. This gives us \\( \\sqrt{n(n+1)} < 12 \\).\n\nNow, we can square both sides of the inequality to get \\( n(n+1) < 144 \\).\n\nWe can now expand the left-hand side of the inequality to get \\( n^2 + n - 144 < 0 \\).\n\nWe can factor the quadratic equation on the left-hand side to get \\( (n - 12)(n + 12) < 0 \\).\n\nWe can now solve the inequality by finding the values of \\( n \\) that make the expression on the left-hand side negative. We have \\( n - 12 < 0 \\) and \\( n + 12 > 0 \\).\n\nSolving these two inequalities, we get \\( -12 < n < 12 \\).\n\nHowever, we also need to consider the perfect square condition. The only perfect square values between -12 and 12 are 0 and 1. \n\nWe need to check the inequality for these values. For n = 0, we have \\( \\sqrt{0} + \\sqrt{0+1} < 5 \\) which is true.\n\nFor n = 1, we have \\( \\sqrt{1} + \\sqrt{1+1} < 5 \\) which is also true.\n\nNow we can sum up all the valid values of n. The sum of all positive integers n such that \\( \\sqrt{n} + \\sqrt{n+1} < 5 \\) and \\( n \\) is a perfect square is \\( 0 + 1 = 1 \\).", "student_b_answer": "To solve this problem, we need to find all perfect squares \\( n \\) such that both conditions are satisfied: \\( \\sqrt{n} + \\sqrt{n+1} < 5 \\) and \\( n \\) is a perfect square.\n\nLet's start by considering small values of \\( n \\):\n\n1. For \\( n = 0 \\):\n   \\[\n   \\sqrt{0} + \\sqrt{1} = 0 + 1 = 1 < 5\n   \\]\n   This satisfies the condition.\n   \n2. For \\( n = 1 \\):\n   \\[\n   \\sqrt{1} + \\sqrt{2} = 1 + 1.414 \\approx 2.414 < 5\n   \\]\n   This also satisfies the condition.\n   \n3. For \\( n = 4 \\):\n   \\[\n   \\sqrt{4} + \\sqrt{5} = 2 + 2.236 \\approx 4.236 < 5\n   \\]\n   This satisfies the condition.\n   \n4. For \\( n = 9 \\):\n   \\[\n   \\sqrt{9} + \\sqrt{10} = 3 + 3.162 \\approx 6.162 > 5\n   \\]\n   This does not satisfy the condition.\n   \n5. For \\( n = 16 \\):\n   \\[\n   \\sqrt{16} + \\sqrt{17} = 4 + 4.123 \\approx 8.123 < 5\n   \\]\n   This does not satisfy the condition.\n   \nWe can see that as \\( n \\) increases, the sum \\( \\sqrt{n} + \\sqrt{n+1} \\) will eventually exceed 5 because the difference between consecutive square roots grows larger than 1 for sufficiently large \\( n \\). Therefore, there are no more solutions beyond these initial values.\n\nThe only perfect squares \\( n \\) that satisfy both conditions are:\n\\[ n = 0, 1, 4 \\]\n\nNow let's calculate their sum:\n\\[\n0 + 1 + 4 = 5\n\\]\n\nThus, the final answer is:\n\\[\n\\boxed{5}\n\\]", "is_final": true}], "student_a_model": "../../models/llama/Llama-3.2-1B-Instruct", "student_b_model": "../../models/qwen2.5/Qwen2.5-1.5B-Instruct", "reward": 1.0, "extracted_a": "1", "extracted_b": "5", "extracted_key": "5", "answer_key_response": "I need to find all positive integers $n$ that are perfect squares and satisfy $\\sqrt{n} + \\sqrt{n+1} < 5$.\n\n## Setting Up the Problem\n\nSince $n$ must be a perfect square, let $n = k^2$ for some positive integer $k$.\n\nThe inequality becomes:\n$$\\sqrt{k^2} + \\sqrt{k^2 + 1} < 5$$\n$$k + \\sqrt{k^2 + 1} < 5$$\n\n## Solving the Inequality\n\nRearranging:\n$$\\sqrt{k^2 + 1} < 5 - k$$\n\nFor this inequality to have solutions, we need $5 - k > 0$, so $k < 5$.\n\nSquaring both sides (valid since both sides are positive when $k < 5$):\n$$k^2 + 1 < (5-k)^2$$\n$$k^2 + 1 < 25 - 10k + k^2$$\n$$1 < 25 - 10k$$\n$$10k < 24$$\n$$k < 2.4$$\n\n## Finding Valid Values\n\nSince $k$ must be a positive integer and $k < 2.4$, we have $k \\in \\{1, 2\\}$.\n\n**Checking $k = 1$:** $n = 1$\n$$\\sqrt{1} + \\sqrt{2} = 1 + 1.414... \\approx 2.414 < 5 \\checkmark$$\n\n**Checking $k = 2$:** $n = 4$\n$$\\sqrt{4} + \\sqrt{5} = 2 + 2.236... \\approx 4.236 < 5 \\checkmark$$\n\n**Checking $k = 3$:** $n = 9$\n$$\\sqrt{9} + \\sqrt{10} = 3 + 3.162... \\approx 6.162 > 5 \\times$$\n\n## Final Answer\n\nThe positive integers $n$ that are perfect squares satisfying the inequality are $n = 1$ and $n = 4$.\n\nThe sum is $1 + 4 = \\boxed{5}$", "max_turns": 4}, {"turns": [{"turn_number": 1, "question": "What is the sum of the first 10 positive integers?", "student_a_answer": "The first 10 positive integers are: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10.\n\nTo find the sum, we use the formula: sum = (n * (n + 1)) / 2, where n is the number of terms.\n\nPlugging in n = 10, we get: sum = (10 * (10 + 1)) / 2\n= (10 * 11) / 2\n= 110 / 2\n= 55\n\nSo, the sum of the first 10 positive integers is 55.", "student_b_answer": "The sum of the first 10 positive integers can be calculated using the formula for the sum of an arithmetic series:\n\n\\[ S_n = \\frac{n(a_1 + a_n)}{2} \\]\n\nwhere \\( n \\) is the number of terms, \\( a_1 \\) is the first term, and \\( a_n \\) is the last term.\n\nFor the first 10 positive integers:\n- The first term (\\(a_1\\)) is 1.\n- The last term (\\(a_{10}\\)) is 10.\n- The number of terms (\\(n\\)) is 10.\n\nPlugging these values into the formula gives us:\n\n\\[ S_{10} = \\frac{10(1 + 10)}{2} \\]\n\\[ S_{10} = \\frac{10 \\times 11}{2} \\]\n\\[ S_{10} = \\frac{110}{2} \\]\n\\[ S_{10} = 55 \\]\n\nTherefore, the sum of the first 10 positive integers is **55**.", "is_final": false}, {"turn_number": 2, "question": "What is the value of the 15th term in the arithmetic sequence that starts at 3 and increases by 4 each time?", "student_a_answer": "To find the 15th term in the arithmetic sequence, we can use the formula:\n\nan = a1 + (n - 1)d\n\nwhere an is the nth term, a1 is the first term (3), n is the term number (15), and d is the common difference (4).\n\nPlugging in the values, we get:\n\na15 = 3 + (15 - 1)4\na15 = 3 + 14(4)\na15 = 3 + 56\na15 = 59\n\nSo, the 15th term in the arithmetic sequence is 59.", "student_b_answer": "To find the value of the 15th term in an arithmetic sequence, we can use the formula for the nth term:\n\n\\[ a_n = a_1 + (n - 1)d \\]\n\nwhere:\n- \\( a_n \\) is the nth term,\n- \\( a_1 \\) is the first term,\n- \\( d \\) is the common difference between consecutive terms,\n- \\( n \\) is the term number.\n\nGiven:\n- The first term \\( a_1 = 3 \\),\n- The common difference \\( d = 4 \\),\n- We want to find the 15th term (\\( n = 15 \\)),\n\nwe plug these values into the formula:\n\n\\[ a_{15} = 3 + (15 - 1) \\times 4 \\]\n\\[ a_{15} = 3 + 14 \\times 4 \\]\n\\[ a_{15} = 3 + 56 \\]\n\\[ a_{15} = 59 \\]\n\nSo, the value of the 15th term is 59.", "is_final": false}, {"turn_number": 3, "question": "What is the sum of all integers from 1 to 100 that are divisible by 7?", "student_a_answer": "To find the sum of all integers from 1 to 100 that are divisible by 7, we need to find the number of terms in the arithmetic series.\n\nFirst, we find the first term (a) which is 7 (since 7 is divisible by 7).\nNext, we find the last term (l) which is 98 (since 98 is the largest integer less than or equal to 100 that is divisible by 7).\nThen, we find the common difference (d) which is 7 (since the terms are consecutive multiples of 7).\n\nNow, we use the formula for the sum of an arithmetic series: \n\nSum = (n/2) * (a + l)\n\nwhere n is the number of terms. \n\nWe can find n using the formula for the nth term of an arithmetic sequence: \n\nl = a + (n-1) * d\n\nRearranging the formula to solve for n, we get:\n\nn = (l - a) / d + 1\n\nSubstituting the values, we get:\n\nn = (98 - 7) / 7 + 1\nn = 91 / 7 + 1\nn = 13 + 1\nn = 14\n\nNow, we can plug in the values into the formula for the sum:\n\nSum = (14/2) * (7 + 98)\nSum = 7 * 105\nSum = 735\n\nTherefore, the sum of all integers from 1 to 100 that are divisible by 7 is 735.", "student_b_answer": "To find the sum of all integers from 1 to 100 that are divisible by 7, we first identify these numbers.\n\nThe sequence starts at 7 and ends at 98 (since \\(98 = 7 \\times 14\\)). This forms an arithmetic series where each term increases by 7.\n\nWe use the formula for the sum of an arithmetic series:\n\n\\[ S_n = \\frac{n}{2} [a + l] \\]\n\nwhere:\n- \\( n \\) is the number of terms,\n- \\( a \\) is the first term,\n- \\( l \\) is the last term.\n\nFirst, calculate the number of terms (\\( n \\)):\n\n\\[ n = \\frac{l - a}{d} + 1 \\]\n\\[ n = \\frac{98 - 7}{7} + 1 \\]\n\\[ n = \\frac{91}{7} + 1 \\]\n\\[ n = 13 + 1 \\]\n\\[ n = 14 \\]\n\nNow substitute into the sum formula:\n\n\\[ S_{14} = \\frac{14}{2} [7 + 98] \\]\n\\[ S_{14} = 7 [105] \\]\n\\[ S_{14} = 735 \\]\n\nTherefore, the sum of all integers from 1 to 100 that are divisible by 7 is $\\boxed{735}$.", "is_final": false}, {"turn_number": 4, "question": "#Final Question#  \nWhat is the sum of all integers from 1 to 200 that are divisible by either 3 or 5, but not both?", "student_a_answer": "To find the sum of all integers from 1 to 200 that are divisible by either 3 or 5 but not both, we need to find the sum of integers divisible by 3 and 5, then subtract the sum of integers divisible by both 3 and 5.\n\nFirst, let's find the sum of integers divisible by 3.\n\nThere are 66 multiples of 3 between 1 and 200 (since 200/3 = 66.67). \n\nThe sum of integers divisible by 3 is: \n(3*1) + (3*2) + (3*3) + ... + (3*66) \n= 3*(1 + 2 + 3 + ... + 66) \n= 3*(66*67)/2 \n= 3*3531 \n= 10593\n\nNext, let's find the sum of integers divisible by 5.\n\nThere are 40 multiples of 5 between 1 and 200 (since 200/5 = 40). \n\nThe sum of integers divisible by 5 is: \n(5*1) + (5*2) + (5*3) + ... + (5*40) \n= 5*(1 + 2 + 3 + ... + 40) \n= 5*(40*41)/2 \n= 5*820 \n= 4100\n\nNow, let's find the sum of integers divisible by both 3 and 5 (i.e., multiples of 15).\n\nThere are 13 multiples of 15 between 1 and 200 (since 200/15 = 13.33). \n\nThe sum of integers divisible by both 3 and 5 is: \n(15*1) + (15*2) + (15*3) + ... + (15*13) \n= 15*(1 + 2 + 3 + ... + 13) \n= 15*(13*14)/2 \n= 15*143 \n= 2155\n\nFinally, we subtract the sum of integers divisible by both 3 and 5 from the sum of integers divisible by 3 and 5.\n\nThe sum of integers from 1 to 200 that are divisible by either 3 or 5 but not both is:\n10593 - 2155 \n= 8328", "student_b_answer": "To find the sum of all integers from 1 to 200 that are divisible by either 3 or 5, but not both, we can use the principle of inclusion-exclusion and some arithmetic.\n\nFirst, let's count the numbers divisible by 3:\n\\[\n\\left\\lfloor \\frac{200}{3} \\right\\rfloor = 66\n\\]\nNext, let's count the numbers divisible by 5:\n\\[\n\\left\\lfloor \\frac{200}{5} \\right\\rfloor = 40\n\\]\nThen, let's count the numbers divisible by both 3 and 5 (i.e., divisible by \\(15\\)):\n\\[\n\\left\\lfloor \\frac{200}{15} \\right\\rfloor = 13\n\\]\n\nUsing the principle of inclusion-exclusion, the number of integers from 1 to 200 that are divisible by either 3 or 5 is:\n\\[\n66 + 40 - 13 = 93\n\\]\n\nNow, we need to exclude those numbers that are counted twice because they were included in both counts for 3 and 5. The only numbers divisible by both 3 and 5 within this range are multiples of 15. We already know there are 13 such numbers. Therefore, we subtract these from our total:\n\nThe sum of all integers from 1 to 200 that are divisible by either 3 or 5, but not both, is:\n\\[\n93 \\times (1 + 3 + 5) - 13 \\times (1 + 3 + 5)\n\\]\n\\[\n= 93 \\times 9 - 13 \\times 9\n\\]\n\\[\n= 837 - 117\n\\]\n\\[\n= 720\n\\]\n\nThus, the final answer is:\n\\[\n\\boxed{720}\n\\]", "is_final": true}], "student_a_model": "../../models/llama/Llama-3.2-1B-Instruct", "student_b_model": "../../models/qwen2.5/Qwen2.5-1.5B-Instruct", "reward": 0.0, "extracted_a": "8328", "extracted_b": "720", "extracted_key": "8003", "answer_key_response": "I need to find the sum of integers from 1 to 200 that are divisible by 3 or 5, but not both.\n\n## Setting Up the Problem\n\nI want numbers divisible by 3 or 5, but NOT divisible by both (i.e., not divisible by 15).\n\nThis means I need:\n- Numbers divisible by 3 only (not by 5)\n- Numbers divisible by 5 only (not by 3)\n\n## Calculating Each Sum\n\n**Sum of all multiples of 3 from 1 to 200:**\n\nMultiples: 3, 6, 9, ..., 198. There are \u230a200/3\u230b = 66 terms.\n\nSum = 3(1 + 2 + ... + 66) = 3 \u00b7 (66\u00b767/2) = 3 \u00b7 2211 = 6633\n\n**Sum of all multiples of 5 from 1 to 200:**\n\nMultiples: 5, 10, 15, ..., 200. There are \u230a200/5\u230b = 40 terms.\n\nSum = 5(1 + 2 + ... + 40) = 5 \u00b7 (40\u00b741/2) = 5 \u00b7 820 = 4100\n\n**Sum of all multiples of 15 from 1 to 200:**\n\nMultiples: 15, 30, 45, ..., 195. There are \u230a200/15\u230b = 13 terms.\n\nSum = 15(1 + 2 + ... + 13) = 15 \u00b7 (13\u00b714/2) = 15 \u00b7 91 = 1365\n\n## Finding the Answer\n\n**Sum of multiples of 3 only (not divisible by 5):**\n= (Sum of multiples of 3) - (Sum of multiples of 15)\n= 6633 - 1365 = 5268\n\n**Sum of multiples of 5 only (not divisible by 3):**\n= (Sum of multiples of 5) - (Sum of multiples of 15)\n= 4100 - 1365 = 2735\n\n**Total sum (divisible by 3 or 5, but not both):**\n= 5268 + 2735 = **8003**\n\n$$\\boxed{8003}$$", "max_turns": 4}, {"turns": [{"turn_number": 1, "question": "What is the smallest positive integer that is divisible by both 8 and 12?", "student_a_answer": "To find the smallest positive integer that is divisible by both 8 and 12, we need to find the least common multiple (LCM) of 8 and 12.\n\nThe multiples of 8 are: 8, 16, 24, 32, 40, 48, 56, 64, 72, 80, 88, 96, 104, 112, 120, ...\nThe multiples of 12 are: 12, 24, 36, 48, 60, 72, 84, 96, 108, 120, ...\n\nThe first number that appears in both lists is 96. Therefore, the smallest positive integer that is divisible by both 8 and 12 is 96.", "student_b_answer": "The prime factorization of 8 is \\(2^3\\) and the prime factorization of 12 is \\(2^2 \\times 3\\). To find the least common multiple (LCM), we take the highest power of each prime that appears in either factorization.\n\nSo, the LCM will be \\(2^3 \\times 3 = 8 \\times 3 = 24\\).\n\nTherefore, the answer is 24.", "is_final": false}, {"turn_number": 2, "question": "What is the greatest common divisor (GCD) of 48 and 72?", "student_a_answer": "To find the GCD of 48 and 72, we need to list the factors of each number.\n\nThe factors of 48 are: 1, 2, 3, 4, 6, 8, 12, 16, 24, 48\n\nThe factors of 72 are: 1, 2, 3, 4, 6, 8, 9, 12, 18, 24, 36, 72\n\nThe greatest common factor (GCD) is the largest factor that is common to both numbers. In this case, the largest common factor is 24.\n\nSo, the GCD of 48 and 72 is 24.", "student_b_answer": "To find the greatest common divisor (GCD) of 48 and 72, we can use the Euclidean algorithm:\n\n1. Divide 72 by 48 to get a quotient of 1 and remainder: \n   72 = 48 * 1 + 24\n\n2. Now divide 48 by the remainder from step 1:\n   48 = 24 * 2 + 0\n\nSince the remainder is now zero, the GCD is the last non-zero remainder, which is 24.\n\nTherefore, the answer is $\\boxed{24}$.", "is_final": false}, {"turn_number": 3, "question": "What is the sum of the first 20 positive even integers?", "student_a_answer": "The first 20 positive even integers are: 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40.\n\nTo find the sum, we can use the formula for the sum of an arithmetic series:\n\nSum = (n/2) * (a1 + an)\n\nwhere n is the number of terms, a1 is the first term, and an is the last term.\n\nIn this case, n = 20, a1 = 2, and an = 40.\n\nSum = (20/2) * (2 + 40)\nSum = 10 * 42\nSum = 420\n\nSo, the sum of the first 20 positive even integers is 420.", "student_b_answer": "To find the sum of the first 20 positive even integers, we start by identifying these numbers: 2, 4, 6, ..., up to 40.\n\nThe formula for the sum \\( S \\) of an arithmetic series (a sequence with a constant difference between terms) is:\n\n\\[ S = \\frac{n}{2} [2a + (n-1)d] \\]\n\nwhere:\n- \\( n \\) is the number of terms,\n- \\( a \\) is the first term, and\n- \\( d \\) is the common difference.\n\nFor our series:\n- The first term (\\( a \\)) is 2.\n- The common difference (\\( d \\)) is 2.\n- We want to find the sum of the first 20 terms (\\( n = 20 \\)).\n\nPlugging these values into the formula gives us:\n\n\\[\nS = \\frac{20}{2} [2(2) + (20 - 1)(2)]\n\\]\n\nFirst, calculate inside the brackets:\n\n\\[\n2(2) = 4\n\\]\n\\[\n(20 - 1)(2) = 19 \\times 2 = 38\n\\]\n\nNow add them together:\n\n\\[\n4 + 38 = 42\n\\]\n\nThen multiply by \\( \\frac{20}{2} \\):\n\n\\[\nS = 10 \\times 42 = 420\n\\]\n\nSo, the sum of the first 20 positive even integers is 420. Therefore, the answer is \\(\\boxed{420}\\).", "is_final": false}, {"turn_number": 4, "question": "#Final Question#  \nWhat is the sum of all integers from 1 to 100 that are divisible by 4 or 6?", "student_a_answer": "To find the sum of all integers from 1 to 100 that are divisible by 4 or 6, we need to find the sum of the numbers divisible by 4 and the sum of the numbers divisible by 6, and then subtract the sum of the numbers divisible by 12 (since they were counted twice).\n\nFirst, let's find the sum of the numbers divisible by 4:\n- The largest number divisible by 4 that is less than or equal to 100 is 100.\n- The smallest number divisible by 4 is 4.\n- The number of terms can be found using the formula (last term - first term)/common difference + 1.\n- Therefore, the number of terms is (100 - 4)/4 + 1 = 25.\n- The sum of an arithmetic series can be found using the formula n/2 * (first term + last term), where n is the number of terms.\n- Therefore, the sum of the numbers divisible by 4 is 25/2 * (4 + 100) = 25 * 54 = 1350.\n\nNext, let's find the sum of the numbers divisible by 6:\n- The largest number divisible by 6 that is less than or equal to 100 is 96.\n- The smallest number divisible by 6 is 6.\n- The number of terms can be found using the formula (last term - first term)/common difference + 1.\n- Therefore, the number of terms is (96 - 6)/6 + 1 = 16.\n- The sum of an arithmetic series can be found using the formula n/2 * (first term + last term), where n is the number of terms.\n- Therefore, the sum of the numbers divisible by 6 is 16/2 * (6 + 96) = 8 * 102 = 816.\n\nNow, let's find the sum of the numbers divisible by 12:\n- The largest number divisible by 12 that is less than or equal to 100 is 96.\n- The smallest number divisible by 12 is 12.\n- The number of terms can be found using the formula (last term - first term)/common difference + 1.\n- Therefore, the number of terms is (96 - 12)/12 + 1 = 8.\n- The sum of an arithmetic series can be found using the formula n/2 * (first term + last term), where n is the number of terms.\n- Therefore, the sum of the numbers divisible by 12 is 8/2 * (12 + 96) = 4 * 108 = 432.\n\nNow, we add the sums of the numbers divisible by 4, 6, and 12:\n- The sum of the numbers divisible by 4 is 1350.\n- The sum of the numbers divisible by 6 is 816.\n- The sum of the numbers divisible by 12 is 432.\n- The sum of the numbers divisible by 4 or 6 is 1350 + 816 - 432 = 1816.\n\nSo, the final answer is:\n\\boxed{1816}", "student_b_answer": "To find the sum of all integers from 1 to 100 that are divisible by 4 or 6, we can use the principle of inclusion-exclusion.\n\nFirst, let's calculate the sum of all multiples of 4 up to 100:\n\\[ S_4 = 4 + 8 + 12 + \\cdots + 100 \\]\nThis is an arithmetic series with the first term \\( a = 4 \\), common difference \\( d = 4 \\), and last term \\( l = 100 \\). The number of terms \\( n \\) in this series is:\n\\[ n = \\frac{100 - 4}{4} + 1 = 25 \\]\n\nThe sum of an arithmetic series is given by:\n\\[ S_n = \\frac{n}{2} (a + l) \\]\nSo,\n\\[ S_4 = \\frac{25}{2} (4 + 100) = \\frac{25}{2} \\times 104 = 25 \\times 52 = 1300 \\]\n\nNext, let's calculate the sum of all multiples of 6 up to 100:\n\\[ S_6 = 6 + 12 + 18 + \\cdots + 96 \\]\nThis is also an arithmetic series with the first term \\( a = 6 \\), common difference \\( d = 6 \\), and last term \\( l = 96 \\). The number of terms \\( n \\) in this series is:\n\\[ n = \\frac{96 - 6}{6} + 1 = 16 \\]\n\nThe sum of this series is:\n\\[ S_6 = \\frac{16}{2} (6 + 96) = 8 \\times 102 = 816 \\]\n\nNow, we need to subtract the sum of the multiples of both 4 and 6 (i.e., the multiples of 12) because they were counted twice:\n\\[ S_{12} = 12 + 24 + 36 + \\cdots + 96 \\]\nThis is an arithmetic series with the first term \\( a = 12 \\), common difference \\( d = 12 \\), and last term \\( l = 96 \\). The number of terms \\( n \\) in this series is:\n\\[ n = \\frac{96 - 12}{12} + 1 = 8 \\]\n\nThe sum of this series is:\n\\[ S_{12} = \\frac{8}{2} (12 + 96) = 4 \\times 108 = 432 \\]\n\nUsing the principle of inclusion-exclusion, the sum of all multiples of 4 or 6 is:\n\\[ S_{\\text{sum}} = S_4 + S_6 - S_{12} = 1300 + 816 - 432 = 1784 \\]\n\nThus, the sum of all integers from 1 to 100 that are divisible by 4 or 6 is \\(\\boxed{1784}\\).", "is_final": true}], "student_a_model": "../../models/llama/Llama-3.2-1B-Instruct", "student_b_model": "../../models/qwen2.5/Qwen2.5-1.5B-Instruct", "reward": 0.0, "extracted_a": "1816", "extracted_b": "1784", "extracted_key": "1684", "answer_key_response": "I need to find the sum of all integers from 1 to 100 that are divisible by 4 or 6.\n\n## Using Inclusion-Exclusion Principle\n\nSum(divisible by 4 or 6) = Sum(divisible by 4) + Sum(divisible by 6) - Sum(divisible by both 4 and 6)\n\nNumbers divisible by both 4 and 6 are divisible by LCM(4,6) = 12.\n\n## Sum of integers divisible by 4 (from 1 to 100)\n\nThese are: 4, 8, 12, ..., 100\n\nThis is an arithmetic sequence: 4\u00b71, 4\u00b72, 4\u00b73, ..., 4\u00b725\n\nSum = 4(1 + 2 + 3 + ... + 25) = 4 \u00b7 (25\u00b726)/2 = 4 \u00b7 325 = **1300**\n\n## Sum of integers divisible by 6 (from 1 to 100)\n\nThese are: 6, 12, 18, ..., 96\n\nThis is: 6\u00b71, 6\u00b72, 6\u00b73, ..., 6\u00b716\n\nSum = 6(1 + 2 + 3 + ... + 16) = 6 \u00b7 (16\u00b717)/2 = 6 \u00b7 136 = **816**\n\n## Sum of integers divisible by 12 (from 1 to 100)\n\nThese are: 12, 24, 36, ..., 96\n\nThis is: 12\u00b71, 12\u00b72, 12\u00b73, ..., 12\u00b78\n\nSum = 12(1 + 2 + 3 + ... + 8) = 12 \u00b7 (8\u00b79)/2 = 12 \u00b7 36 = **432**\n\n## Final Calculation\n\nSum = 1300 + 816 - 432 = **1684**\n\n$$\\boxed{1684}$$", "max_turns": 4}, {"turns": [{"turn_number": 1, "question": "What is the smallest positive integer that is divisible by both 8 and 12?", "student_a_answer": "Let $n$ be the smallest positive integer that is divisible by both 8 and 12.\nThis means that $n$ is the least common multiple (LCM) of 8 and 12.\nTo find the LCM of 8 and 12, we can first find the prime factorization of each number.\n$8 = 2^3$\n$12 = 2^2 \\cdot 3$\nThe LCM is the product of the highest powers of all prime factors that appear in either factorization.\n$$ \\text{LCM}(8, 12) = 2^3 \\cdot 3 = 8 \\cdot 3 = 24 $$\nTherefore, the smallest positive integer that is divisible by both 8 and 12 is 24.\n\nFinal Answer: The final answer is $\\boxed{24}$", "student_b_answer": "To find the smallest positive integer that is divisible by both 8 and 12, we need to determine their least common multiple (LCM). The LCM of two numbers is the smallest number that is a multiple of both.\n\nFirst, let's list the prime factorizations of the numbers:\n- \\(8 = 2^3\\)\n- \\(12 = 2^2 \\times 3\\)\n\nThe LCM is found by taking the highest power of each prime that appears in these factorizations.\n- For the prime number 2, the highest power is \\(2^3\\) (from 8).\n- For the prime number 3, the highest power is \\(3^1\\) (from 12).\n\nThus, the LCM is:\n\\[ 2^3 \\times 3 = 8 \\times 3 = 24 \\]\n\nTherefore, the smallest positive integer that is divisible by both 8 and 12 is 24. \n\nSo, the answer is \\(\\boxed{24}\\).", "is_final": false}, {"turn_number": 2, "question": "What is the greatest common divisor (GCD) of 36 and 48?", "student_a_answer": "Let's find the greatest common divisor (GCD) of 36 and 48 using the Euclidean algorithm.\nDivide 48 by 36:\n$48 = 36 \\cdot 1 + 12$\nNow, divide 36 by 12:\n$36 = 12 \\cdot 3 + 0$\nThe last non-zero remainder is 12, so the GCD of 36 and 48 is 12.\n\nFinal Answer: The final answer is $\\boxed{12}$", "student_b_answer": "To find the greatest common divisor (GCD) of 36 and 48, we can use the Euclidean algorithm or prime factorization.\n\nUsing prime factorization:\n- The prime factors of 36 are \\(2^2 \\times 3^2\\).\n- The prime factors of 48 are \\(2^4 \\times 3\\).\n\nThe GCD is found by taking the lowest power of each prime that appears in both numbers.\n- For the prime number 2: the lowest power present in both is \\(2^2 = 4\\).\n- For the prime number 3: the lowest power present in both is \\(3^1 = 3\\).\n\nSo, the GCD is \\(4 \\times 3 = 12\\).\n\nTherefore, the greatest common divisor of 36 and 48 is 12.", "is_final": false}, {"turn_number": 3, "question": "What is the value of the sum $1^3 + 2^3 + 3^3 + 4^3 + 5^3$?", "student_a_answer": "Let $S = 1^3 + 2^3 + 3^3 + 4^3 + 5^3$.\nWe have\n$1^3 = 1$\n$2^3 = 8$\n$3^3 = 27$\n$4^3 = 64$\n$5^3 = 125$\nTherefore,\n$S = 1 + 8 + 27 + 64 + 125 = 9 + 27 + 64 + 125 = 36 + 64 + 125 = 100 + 125 = 225$.\n\nThus, $1^3 + 2^3 + 3^3 + 4^3 + 5^3 = 225$.\n\nFinal Answer: The final answer is $\\boxed{225}$", "student_b_answer": "The value of the sum \\(1^3 + 2^3 + 3^3 + 4^3 + 5^3\\) can be calculated as follows:\n\n\\[1^3 = 1\\]\n\\[2^3 = 8\\]\n\\[3^3 = 27\\]\n\\[4^3 = 64\\]\n\\[5^3 = 125\\]\n\nAdding these together, we get:\n\\[1 + 8 + 27 + 64 + 125 = 225\\]\n\nTherefore, the answer is 225.", "is_final": false}, {"turn_number": 4, "question": "#Final Question#  \nWhat is the sum of the first 10 positive integers, each raised to the third power, i.e., $1^3 + 2^3 + 3^3 + \\cdots + 10^3$?", "student_a_answer": "Let $S = 1^3 + 2^3 + 3^3 + \\cdots + 10^3$. We want to find the value of $S$.\nWe have a formula for the sum of the first $n$ cubes:\n$$ \\sum_{k=1}^n k^3 = \\left( \\frac{n(n+1)}{2} \\right)^2 $$\nIn our case, $n=10$, so we have\n$$ S = \\sum_{k=1}^{10} k^3 = \\left( \\frac{10(10+1)}{2} \\right)^2 = \\left( \\frac{10 \\cdot 11}{2} \\right)^2 = (5 \\cdot 11)^2 = 55^2 = 3025 $$\nTherefore, the sum of the first 10 positive integers, each raised to the third power, is 3025.\n\nFinal Answer: The final answer is $\\boxed{3025}$", "student_b_answer": "The problem asks for the sum of cubes of the first 10 positive integers, which can be expressed as:\n\n\\[ S = 1^3 + 2^3 + 3^3 + \\cdots + 10^3 \\]\n\nTo find this sum, we use the formula for the sum of cubes of the first \\( n \\) natural numbers:\n\n\\[ S_n = \\left( \\frac{n(n+1)}{2} \\right)^2 \\]\n\nIn our case, \\( n = 10 \\). Plugging this into the formula gives us:\n\n\\[ S_{10} = \\left( \\frac{10(10+1)}{2} \\right)^2 \\]\n\\[ S_{10} = \\left( \\frac{10 \\times 11}{2} \\right)^2 \\]\n\\[ S_{10} = (55)^2 \\]\n\\[ S_{10} = 3025 \\]\n\nTherefore, the sum of the first 10 positive integers, each raised to the third power, is $\\boxed{3025}$.", "is_final": true}], "student_a_model": "../../models/gemma/gemma-3-1b-it", "student_b_model": "../../models/qwen2.5/Qwen2.5-1.5B-Instruct", "reward": 0.0, "extracted_a": "3025", "extracted_b": "3025", "extracted_key": "3025", "answer_key_response": "I need to find the sum $1^3 + 2^3 + 3^3 + \\cdots + 10^3$.\n\n## Using the Formula\n\nThere's a beautiful formula for the sum of cubes:\n$$\\sum_{k=1}^{n} k^3 = \\left(\\frac{n(n+1)}{2}\\right)^2$$\n\nThis means the sum of the first $n$ cubes equals the square of the sum of the first $n$ integers.\n\n## Applying the Formula\n\nFor $n = 10$:\n$$\\sum_{k=1}^{10} k^3 = \\left(\\frac{10 \\cdot 11}{2}\\right)^2 = \\left(\\frac{110}{2}\\right)^2 = 55^2$$\n\nCalculating $55^2$:\n$$55^2 = 3025$$\n\n## Verification\n\nLet me verify by computing directly:\n- $1^3 = 1$\n- $2^3 = 8$\n- $3^3 = 27$\n- $4^3 = 64$\n- $5^3 = 125$\n- $6^3 = 216$\n- $7^3 = 343$\n- $8^3 = 512$\n- $9^3 = 729$\n- $10^3 = 1000$\n\nSum: $1 + 8 + 27 + 64 + 125 + 216 + 343 + 512 + 729 + 1000$\n\nAdding step by step:\n- $1 + 8 = 9$\n- $9 + 27 = 36$\n- $36 + 64 = 100$\n- $100 + 125 = 225$\n- $225 + 216 = 441$\n- $441 + 343 = 784$\n- $784 + 512 = 1296$\n- $1296 + 729 = 2025$\n- $2025 + 1000 = 3025$ \u2713\n\n$$\\boxed{3025}$$", "max_turns": 4}, {"turns": [{"turn_number": 1, "question": "What is the smallest positive integer that is divisible by both 8 and 12?", "student_a_answer": "Let $n$ be the smallest positive integer that is divisible by both 8 and 12. This means that $n$ is a common multiple of 8 and 12. We want to find the least common multiple (LCM) of 8 and 12.\nFirst, we find the prime factorization of 8 and 12.\n$8 = 2^3$\n$12 = 2^2 \\cdot 3$\nThe LCM is the product of the highest powers of all prime factors that appear in either factorization.\n$\\text{LCM}(8, 12) = 2^3 \\cdot 3 = 8 \\cdot 3 = 24$.\n\nTherefore, the smallest positive integer that is divisible by both 8 and 12 is 24.\n\nFinal Answer: The final answer is $\\boxed{24}$", "student_b_answer": "To find the smallest positive integer that is divisible by both 8 and 12, we need to determine their least common multiple (LCM).\n\nFirst, let's factorize each number into its prime factors:\n- The prime factorization of 8 is \\(2^3\\).\n- The prime factorization of 12 is \\(2^2 \\times 3\\).\n\nThe LCM is found by taking the highest power of each prime that appears in these factorizations. Here, the primes involved are 2 and 3.\n\n- For the prime factor 2, the highest power is \\(2^3\\) from 8.\n- For the prime factor 3, the highest power is \\(3^1\\) from 12.\n\nThus, the LCM is calculated as follows:\n\\[ \\text{LCM} = 2^3 \\times 3^1 = 8 \\times 3 = 24. \\]\n\nTherefore, the smallest positive integer that is divisible by both 8 and 12 is 24.", "is_final": false}, {"turn_number": 2, "question": "What is the greatest common divisor (GCD) of 36 and 48?", "student_a_answer": "Let's find the greatest common divisor (GCD) of 36 and 48 using the Euclidean algorithm.\nDivide 48 by 36:\n$48 = 1 \\cdot 36 + 12$\nNow divide 36 by 12:\n$36 = 3 \\cdot 12 + 0$\nThe last non-zero remainder is 12, so the GCD of 36 and 48 is 12.\n\nFinal Answer: The final answer is $\\boxed{12}$", "student_b_answer": "The prime factorization of 36 is \\(2^2 \\times 3^2\\) and for 48 it's \\(2^4 \\times 3\\). The GCD is found by taking the lowest power of each prime that appears in both factorizations, which is \\(2^2 \\times 3 = 12\\). Therefore, the answer is 12.", "is_final": false}, {"turn_number": 3, "question": "What is the value of the integer $ n $ such that $ n^2 - 5n + 6 = 0 $?", "student_a_answer": "Let the given equation be $n^2 - 5n + 6 = 0$. We want to find the integer value of $n$ that satisfies this equation.\nWe can factor the quadratic equation as follows:\n$n^2 - 5n + 6 = 0$\n$(n - 2)(n - 3) = 0$\nSo, $n - 2 = 0$ or $n - 3 = 0$.\nIf $n - 2 = 0$, then $n = 2$.\nIf $n - 3 = 0$, then $n = 3$.\nThus, the possible values of $n$ are $2$ and $3$.\n\nThe question asks for the value of the integer $n$.\nTherefore, the possible values of $n$ are $2$ and $3$.\nThe final answer is $2$.\n\nFinal Answer: The final answer is $\\boxed{2}$", "student_b_answer": "To solve for \\( n \\) in the equation \\( n^2 - 5n + 6 = 0 \\), we can factorize or use the quadratic formula.\n\nLet's factorize:\n\\[ n^2 - 5n + 6 = (n-2)(n-3) = 0 \\]\n\nSetting each factor to zero gives us two possible solutions:\n1. \\( n - 2 = 0 \\)\n   \\[ n = 2 \\]\n   \n2. \\( n - 3 = 0 \\)\n   \\[ n = 3 \\]\n\nThus, the values of \\( n \\) are \\( 2 \\) and \\( 3 \\). Since the problem asks for the \"integer\" value of \\( n \\), both 2 and 3 would be considered valid answers within this context.\n\nTherefore, the final answer is: $\\boxed{2 \\text{ or } 3}$", "is_final": false}, {"turn_number": 4, "question": "#Final Question#  \nWhat is the sum of all integer solutions to the equation $ x^2 - 7x + 10 = 0 $?", "student_a_answer": "Let the given equation be $x^2 - 7x + 10 = 0$. We want to find the sum of all integer solutions to this equation.\n\nWe can factor the quadratic equation as follows:\n$x^2 - 7x + 10 = 0$\n$(x - 2)(x - 5) = 0$\nSo, the solutions are $x = 2$ and $x = 5$.\nThe integer solutions are $x = 2$ and $x = 5$.\nThe sum of the integer solutions is $2 + 5 = 7$.\n\nAlternatively, we can use Vieta's formulas.\nThe sum of the roots of the quadratic equation $ax^2 + bx + c = 0$ is $-\\frac{b}{a}$.\nIn our case, $a = 1$, $b = -7$, and $c = 10$.\nThe sum of the roots is $-\\frac{-7}{1} = 7$.\nThe product of the roots is $\\frac{c}{a} = \\frac{10}{1} = 10$.\nThe integer solutions are $x = 2$ and $x = 5$.\nThe sum of the integer solutions is $2 + 5 = 7$.\n\nFinal Answer: The final answer is $\\boxed{7}$", "student_b_answer": "To find the sum of all integer solutions to the quadratic equation \\(x^2 - 7x + 10 = 0\\), we start by factoring the quadratic expression on the left-hand side.\n\nThe equation can be factored as:\n\\[ (x-2)(x-5) = 0 \\]\n\nSetting each factor equal to zero gives us the solutions:\n\\[ x - 2 = 0 \\quad \\text{or} \\quad x - 5 = 0 \\]\n\\[ x = 2 \\quad \\text{or} \\quad x = 5 \\]\n\nThe integer solutions are \\(x = 2\\) and \\(x = 5\\). To find the sum of these solutions, we add them together:\n\\[ 2 + 5 = 7 \\]\n\nThus, the sum of all integer solutions to the equation is \\(\\boxed{7}\\).", "is_final": true}], "student_a_model": "../../models/gemma/gemma-3-1b-it", "student_b_model": "../../models/qwen2.5/Qwen2.5-1.5B-Instruct", "reward": 0.0, "extracted_a": "7", "extracted_b": "7", "extracted_key": "7", "answer_key_response": "I need to find all integer solutions to the equation $x^2 - 7x + 10 = 0$ and then sum them.\n\n## Solving the Quadratic Equation\n\nI'll factor the quadratic $x^2 - 7x + 10 = 0$.\n\nI need two numbers that:\n- Multiply to give 10\n- Add to give -7\n\nThe numbers -2 and -5 work since:\n- $(-2) \\times (-5) = 10$\n- $(-2) + (-5) = -7$\n\nSo the equation factors as:\n$$(x - 2)(x - 5) = 0$$\n\n## Finding the Solutions\n\nSetting each factor equal to zero:\n- $x - 2 = 0 \\Rightarrow x = 2$\n- $x - 5 = 0 \\Rightarrow x = 5$\n\nBoth solutions are integers.\n\n## Finding the Sum\n\nThe sum of all integer solutions is:\n$$2 + 5 = 7$$\n\n$$\\boxed{7}$$", "max_turns": 4}]}};
+        const metadata = {"model_name": "Unknown", "run_id": "20251205_172309_unknown_model_a496hc71", "wandb_run_id": "a496hc71", "wandb_project": "ask_small", "total_rollouts": 100, "last_updated": "2025-12-05 17:25:55"};
+
+        // Display metadata
+        function displayMetadata() {
+            const container = document.getElementById('metadata-display');
+            const items = [
+                { label: 'Model', value: metadata.model_name },
+                { label: 'W&B Run ID', value: metadata.wandb_run_id },
+                { label: 'W&B Project', value: metadata.wandb_project },
+                { label: 'Total Rollouts', value: metadata.total_rollouts.toLocaleString() },
+                { label: 'Last Updated', value: metadata.last_updated },
+            ];
+
+            container.innerHTML = items.map(item => `
+                <div class="metadata-item">
+                    <div class="metadata-label">${item.label}</div>
+                    <div class="metadata-value">${item.value}</div>
+                </div>
+            `).join('');
+        }
+        displayMetadata();
+
+        // Create the Plotly chart
+        const trace1 = {
+            x: rewardData.rollouts,
+            y: rewardData.rewards,
+            mode: 'markers',
+            type: 'scatter',
+            name: 'Avg Reward (per interval)',
+            marker: {
+                size: 10,
+                color: '#2196f3',
+                opacity: 0.7
+            },
+            hovertemplate: 'Rollout: %{x}<br>Avg Reward: %{y:.3f}<extra></extra>'
+        };
+
+        const trace2 = {
+            x: rewardData.rollouts,
+            y: rewardData.avg_rewards,
+            mode: 'lines',
+            type: 'scatter',
+            name: 'Running Average',
+            line: {
+                color: '#f44336',
+                width: 2
+            },
+            hovertemplate: 'Rollout: %{x}<br>Running Avg: %{y:.3f}<extra></extra>'
+        };
+
+        const layout = {
+            title: 'Reward over Training',
+            xaxis: {
+                title: 'Total Rollouts',
+                gridcolor: '#eee'
+            },
+            yaxis: {
+                title: 'Reward',
+                range: [0, 1],
+                gridcolor: '#eee'
+            },
+            hovermode: 'closest',
+            plot_bgcolor: 'white',
+            paper_bgcolor: 'white',
+            legend: {
+                x: 0.02,
+                y: 0.98
+            }
+        };
+
+        const config = {
+            responsive: true,
+            displayModeBar: true,
+            modeBarButtonsToRemove: ['lasso2d', 'select2d']
+        };
+
+        Plotly.newPlot('reward-chart', [trace1, trace2], layout, config);
+
+        // State for current selection
+        let currentRollout = null;
+        let currentExampleIndex = 0;
+
+        // Handle click events on the chart
+        document.getElementById('reward-chart').on('plotly_click', function(data) {
+            const point = data.points[0];
+            currentRollout = point.x;
+            currentExampleIndex = 0;
+            displayRollout();
+        });
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function displayRollout() {
+            if (!currentRollout || !rewardData.examples[currentRollout]) {
+                document.getElementById('rollout-display').innerHTML = `
+                    <div class="no-selection">
+                        <div class="no-selection-icon">📊</div>
+                        <div>No examples available for rollout ${currentRollout}</div>
+                    </div>
+                `;
+                return;
+            }
+
+            const examples = rewardData.examples[currentRollout];
+            const example = examples[currentExampleIndex];
+            const total = examples.length;
+            const turns = example.turns || [];
+            const maxTurns = example.max_turns || turns.length;
+
+            // Find the final turn
+            const finalTurn = turns.find(t => t.is_final) || turns[turns.length - 1];
+            const probingTurns = turns.filter(t => !t.is_final);
+
+            // Determine correctness
+            const aCorrect = example.extracted_a === example.extracted_key;
+            const bCorrect = example.extracted_b === example.extracted_key;
+            const rewardClass = example.reward === 1.0 ? 'success' : 'failure';
+            const rewardText = example.reward === 1.0
+                ? '1.0 - Exactly one student correct (differentiation successful)'
+                : '0.0 - Both correct or both wrong (no differentiation)';
+
+            // Build final evaluation HTML
+            let finalEvalHtml = `
+                <div class="final-evaluation">
+                    <h3>Final Evaluation (Turn ${finalTurn ? finalTurn.turn_number : maxTurns} of ${maxTurns})</h3>
+
+                    <div class="field" style="margin-bottom: 15px;">
+                        <div class="field-label">Final Differentiating Question</div>
+                        <div class="field-value">${escapeHtml(finalTurn ? finalTurn.question : 'N/A')}</div>
+                    </div>
+
+                    <div class="field" style="margin-bottom: 15px;">
+                        <div class="field-label">Student Responses</div>
+                        <div class="student-responses">
+                            <div class="student-box">
+                                <div class="student-name">Student A: ${escapeHtml(example.student_a_model)}</div>
+                                <div class="student-answer">${escapeHtml(finalTurn ? finalTurn.student_a_answer : 'N/A')}</div>
+                            </div>
+                            <div class="student-box">
+                                <div class="student-name">Student B: ${escapeHtml(example.student_b_model)}</div>
+                                <div class="student-answer">${escapeHtml(finalTurn ? finalTurn.student_b_answer : 'N/A')}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="extracted-answers">
+                        <div class="extracted-box">
+                            <div class="extracted-label">Answer Key (Claude)</div>
+                            <div class="extracted-value key">${escapeHtml(example.extracted_key)}</div>
+                        </div>
+                        <div class="extracted-box">
+                            <div class="extracted-label">Student A (${escapeHtml(example.student_a_model)})</div>
+                            <div class="extracted-value ${aCorrect ? 'correct' : 'incorrect'}">${escapeHtml(example.extracted_a)} ${aCorrect ? '✓' : '✗'}</div>
+                        </div>
+                        <div class="extracted-box">
+                            <div class="extracted-label">Student B (${escapeHtml(example.student_b_model)})</div>
+                            <div class="extracted-value ${bCorrect ? 'correct' : 'incorrect'}">${escapeHtml(example.extracted_b)} ${bCorrect ? '✓' : '✗'}</div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <strong>Reward:</strong>
+                        <span class="reward-badge ${rewardClass}">${rewardText}</span>
+                    </div>
+
+                    <div class="answer-key-section">
+                        <div class="answer-key-label">Full Answer Key Response</div>
+                        <div class="answer-key-value">${escapeHtml(example.answer_key_response)}</div>
+                    </div>
+                </div>
+            `;
+
+            // Build conversation turns HTML
+            let turnsHtml = '';
+            for (const turn of turns) {
+                const isProbing = !turn.is_final;
+                const headerClass = isProbing ? 'probing' : 'final';
+                const turnLabel = isProbing
+                    ? `Probing Question ${turn.turn_number}`
+                    : 'Final Differentiating Question';
+
+                turnsHtml += `
+                    <div class="turn">
+                        <div class="turn-header ${headerClass}">
+                            <span>${turnLabel}</span>
+                            <span class="turn-number">Turn ${turn.turn_number} of ${maxTurns}</span>
+                        </div>
+                        <div class="turn-content">
+                            <div class="field">
+                                <div class="field-label">Teacher Question</div>
+                                <div class="field-value">${escapeHtml(turn.question)}</div>
+                            </div>
+                            <div class="field">
+                                <div class="field-label">Student Responses</div>
+                                <div class="student-responses">
+                                    <div class="student-box">
+                                        <div class="student-name">Student A: ${escapeHtml(example.student_a_model)}</div>
+                                        <div class="student-answer">${escapeHtml(turn.student_a_answer)}</div>
+                                    </div>
+                                    <div class="student-box">
+                                        <div class="student-name">Student B: ${escapeHtml(example.student_b_model)}</div>
+                                        <div class="student-answer">${escapeHtml(turn.student_b_answer)}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            const html = `
+                <div class="rollout-header">
+                    <h2>Rollout Examples at ${currentRollout.toLocaleString()} rollouts</h2>
+                    <div class="rollout-nav">
+                        <button onclick="prevExample()" ${currentExampleIndex === 0 ? 'disabled' : ''}>← Previous</button>
+                        <span class="rollout-count">${currentExampleIndex + 1} / ${total}</span>
+                        <button onclick="nextExample()" ${currentExampleIndex === total - 1 ? 'disabled' : ''}>Next →</button>
+                    </div>
+                </div>
+
+                <div class="meta-info" style="margin-bottom: 15px;">
+                    <div><strong>Student Pair:</strong> ${escapeHtml(example.student_a_model)} & ${escapeHtml(example.student_b_model)}</div>
+                </div>
+
+                ${finalEvalHtml}
+
+                <div class="conversation">
+                    ${turnsHtml}
+                </div>
+            `;
+
+            document.getElementById('rollout-display').innerHTML = html;
+        }
+
+        function prevExample() {
+            if (currentExampleIndex > 0) {
+                currentExampleIndex--;
+                displayRollout();
+            }
+        }
+
+        function nextExample() {
+            const examples = rewardData.examples[currentRollout];
+            if (currentExampleIndex < examples.length - 1) {
+                currentExampleIndex++;
+                displayRollout();
+            }
+        }
+    </script>
+</body>
+</html>
